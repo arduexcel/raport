@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="ku" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>ڕاپۆرتی بەڕێوبەرایەتی و وردبینی</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    <style>
+        :root { --primary: #2980b9; --danger: #e74c3c; --dark: #2c3e50; --gray: #95a5a6; --success: #27ae60; --purple: #8e44ad; }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #f0f3f5; margin: 0; padding: 20px; }
+
+        #admin-login { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--dark); display: flex; justify-content: center; align-items: center; z-index: 1000; }
+        .login-card { background: white; padding: 30px; border-radius: 12px; width: 300px; text-align: center; }
+
+        .admin-container { max-width: 1100px; margin: 0 auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); display: none; }
+        
+        .filter-section { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 20px; background: #f9f9f9; padding: 20px; border-radius: 8px; border: 1px solid #eee; }
+        
+        input, select { padding: 12px; border: 1px solid #ddd; border-radius: 6px; width: 100%; box-sizing: border-box; font-size: 15px; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #eee; padding: 12px; text-align: center; }
+        th { background: var(--dark); color: white; }
+
+        .deleted-row { background-color: #fcfcfc !important; color: var(--gray) !important; }
+        .deleted-row td { text-decoration: line-through; }
+        
+        .btn-group { display: flex; gap: 10px; flex-wrap: wrap; }
+        .del-btn { background: var(--danger); color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; }
+        .print-report-btn { background: var(--success); color: white; padding: 10px 20px; border-radius: 6px; border: none; cursor: pointer; font-weight: bold; }
+        .add-car-btn { background: var(--purple); color: white; padding: 10px 20px; border-radius: 6px; border: none; cursor: pointer; font-weight: bold; display: none; }
+        .logout-btn { background: var(--gray); color: white; padding: 10px 20px; border-radius: 6px; border: none; cursor: pointer; font-weight: bold; }
+
+        .summary-box { margin-top: 20px; padding: 25px; background: var(--dark); border-radius: 8px; font-size: 22px; font-weight: bold; text-align: center; color: white; }
+        .permission-notice { font-size: 12px; color: var(--danger); margin-top: 5px; display: none; }
+
+        @media print {
+            .filter-section, .btn-group, .del-btn, #admin-login, .action-col { display: none !important; }
+            .admin-container { box-shadow: none; width: 100%; display: block !important; }
+            th { background: #eee !important; color: black !important; border: 1px solid #000; }
+            td { border: 1px solid #000; }
+            .summary-box { color: black !important; background: white !important; border: 1px solid #000; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="admin-login">
+    <div class="login-card">
+        <h3>چوونەژوورەوەی سیستەم</h3>
+        <input type="text" id="admUser" placeholder="ناوی بەکارهێنەر" style="margin-bottom:10px;"><br>
+        <input type="password" id="admPass" placeholder="پاسۆرد" style="margin-bottom:15px;"><br>
+        <button onclick="checkLogin()" style="width:100%; padding:12px; background:var(--primary); color:white; border:none; border-radius:6px; cursor:pointer;">داخڵبوون</button>
+    </div>
+</div>
+
+<div class="admin-container" id="adminContent">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
+        <div>
+            <h2 id="reportTitle" style="margin:0;">ڕاپۆرتی گشتی</h2>
+            <span id="userRoleTag" style="color: var(--primary); font-weight: bold;"></span>
+        </div>
+        <div class="btn-group">
+            <button id="addCarBtn" class="add-car-btn" onclick="window.open('https://arduexcel.github.io/data-iin/', '_blank')">داخڵکردنی ئۆتۆمبێل</button>
+            <button class="print-report-btn" onclick="window.print()">پڕینتکردنی ڕاپۆرت</button>
+            <button class="logout-btn" onclick="location.reload()">چوونە دەرەوە</button>
+        </div>
+    </div>
+
+    <div class="filter-section">
+        <div>
+            <label>بەروار:</label>
+            <input type="date" id="filterDate" onchange="fetchData()">
+        </div>
+        <div id="lineFilterBox">
+            <label>فلتەری هێڵ:</label>
+            <select id="filterLine" onchange="filterTable()">
+                <option value="">هەموو هێڵەکان</option>
+                <option value="هەولێر">هەولێر</option>
+                <option value="کەرکوک">کەرکوک</option>
+                <option value="ڕانیە">ڕانیە</option>
+                <option value="قەڵادزێ">قەڵادزێ</option>
+                <option value="بغداد">بغداد</option>
+                <option value="چەمچەماڵ">چەمچەماڵ</option>
+                <option value="دووز">دووز</option>
+                <option value="کۆیە">کۆیە</option>
+            </select>
+            <span id="lineDenied" class="permission-notice">تەنها audit دەسەڵاتی هەیە</span>
+        </div>
+        <div>
+            <label>فلتەری کارمەند:</label>
+            <select id="filterEmployee" onchange="filterTable()">
+                <option value="">هەموو کارمەندەکان</option>
+            </select>
+        </div>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>کات</th>
+                <th>کارمەند</th>
+                <th>ژمارە</th>
+                <th>هێڵ</th>
+                <th>نرخ</th>
+                <th class="action-col">کردار</th>
+            </tr>
+        </thead>
+        <tbody id="adminTableBody"></tbody>
+    </table>
+
+    <div class="summary-box" id="totalSummary">کۆی گشتی: 0 دینار</div>
+</div>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyCuUstd-6d0E-EbmQipv2mWk-bA55ajpQ0",
+        authDomain: "car-system-4594d.firebaseapp.com",
+        projectId: "car-system-4594d",
+        storageBucket: "car-system-4594d.firebasestorage.app",
+        messagingSenderId: "719030469585",
+        appId: "1:719030469585:web:7a23645b9e684b727dd6f0"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    let masterData = [];
+    let currentUserRole = ""; 
+
+    function checkLogin() {
+        const u = document.getElementById('admUser').value.toLowerCase();
+        const p = document.getElementById('admPass').value;
+
+        if (p === '0055') {
+            if (u === 'audit' || u === 'accounts') {
+                currentUserRole = u;
+                setupUI();
+            } else {
+                alert("بەکارهێنەر نەدۆزرایەوە!");
+            }
+        } else {
+            alert("پاسۆرد هەڵەیە!");
+        }
+    }
+
+    function setupUI() {
+        document.getElementById('admin-login').style.display = 'none';
+        document.getElementById('adminContent').style.display = 'block';
+        document.getElementById('userRoleTag').innerText = "چوونەژوورەوە وەک: " + currentUserRole;
+        document.getElementById('filterDate').valueAsDate = new Date();
+
+        // نیشاندانی دوگمەی داخڵکردنی ئۆتۆمبێل تەنها بۆ audit
+        if (currentUserRole === "audit") {
+            document.getElementById('addCarBtn').style.display = 'inline-block';
+        }
+
+        if (currentUserRole === "accounts") {
+            document.getElementById('filterLine').disabled = true;
+            document.getElementById('lineDenied').style.display = 'block';
+            document.querySelectorAll('.action-col').forEach(el => el.style.display = 'none');
+        }
+
+        loadEmployees();
+        fetchData();
+    }
+
+    async function loadEmployees() {
+        const snap = await db.collection("Employees").get();
+        const select = document.getElementById('filterEmployee');
+        select.innerHTML = '<option value="">هەموو کارمەندەکان</option>';
+        snap.forEach(doc => {
+            let opt = document.createElement('option');
+            opt.value = doc.data().name; opt.innerHTML = doc.data().name;
+            select.appendChild(opt);
+        });
+    }
+
+    async function fetchData() {
+        const date = document.getElementById('filterDate').value;
+        const snap = await db.collection("Invoices").where("searchDate", "==", date).get();
+        masterData = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        filterTable();
+    }
+
+    function filterTable() {
+        const lineVal = document.getElementById('filterLine').value;
+        const empVal = document.getElementById('filterEmployee').value;
+        const tbody = document.getElementById('adminTableBody');
+        tbody.innerHTML = "";
+        let total = 0;
+
+        masterData.forEach(item => {
+            const matchLine = currentUserRole === "accounts" ? true : (lineVal === "" || item.line === lineVal);
+            const matchEmp = empVal === "" || item.employee === empVal;
+
+            if (matchLine && matchEmp) {
+                const isDel = item.status === "deleted";
+                if (!isDel) total += parseInt(item.price) || 0;
+                
+                let actionBtn = "";
+                if (currentUserRole === "audit") {
+                    actionBtn = `<td class="action-col"><button class="del-btn" onclick="deleteInvoice('${item.id}')" ${isDel ? 'disabled' : ''}>${isDel ? 'سڕاوە' : 'سڕینەوە'}</button></td>`;
+                }
+
+                tbody.innerHTML += `
+                    <tr class="${isDel ? 'deleted-row' : ''}">
+                        <td>${item.date.split(',')[1] || item.date}</td>
+                        <td>${item.employee}</td>
+                        <td>${item.carNumber}</td>
+                        <td>${item.line} ${isDel ? '(سڕاوە)' : ''}</td>
+                        <td>${item.price}</td>
+                        ${currentUserRole === "audit" ? actionBtn : '<td class="action-col">-</td>'}
+                    </tr>`;
+            }
+        });
+        document.getElementById('totalSummary').innerText = "کۆی گشتی: " + total.toLocaleString() + " دینار";
+    }
+
+    async function deleteInvoice(id) {
+        if(confirm("ئایا دڵنیای لە سڕینەوە؟")) {
+            await db.collection("Invoices").doc(id).update({ status: "deleted" });
+            const index = masterData.findIndex(x => x.id === id);
+            if(index !== -1) masterData[index].status = "deleted";
+            filterTable();
+        }
+    }
+</script>
+</body>
+</html>
