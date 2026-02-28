@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="ku" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>سیستەمی کارگێڕی و وردبینی</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    <style>
+        :root { --primary: #2980b9; --danger: #e74c3c; --dark: #2c3e50; --success: #27ae60; --purple: #8e44ad; --acc: #f39c12; }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #f0f3f5; margin: 0; padding: 20px; direction: rtl; }
+        #login-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--dark); display: flex; justify-content: center; align-items: center; z-index: 9999; }
+        .login-box { background: white; padding: 35px; border-radius: 15px; width: 320px; text-align: center; box-shadow: 0 15px 35px rgba(0,0,0,0.5); }
+        .admin-container { max-width: 1150px; margin: 0 auto; background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); display: none; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; border-bottom: 2px solid #eee; padding-bottom: 15px; }
+        input, select { padding: 12px; border: 2px solid #eee; border-radius: 10px; width: 100%; box-sizing: border-box; font-size: 15px; margin-bottom: 10px; outline: none; }
+        .btn { padding: 12px 20px; border-radius: 10px; border: none; cursor: pointer; font-weight: bold; color: white; transition: 0.3s; display: inline-flex; align-items: center; gap: 8px; }
+        .btn-primary { background: var(--primary); }
+        .btn-dark { background: var(--dark); }
+        .btn-danger { background: var(--danger); }
+        .btn-success { background: var(--success); }
+        .btn-purple { background: var(--purple); }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(5px); }
+        .modal-content { background: white; padding: 30px; border-radius: 20px; width: 90%; max-width: 800px; max-height: 85vh; overflow-y: auto; position: relative; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border-bottom: 1px solid #eee; padding: 15px; text-align: center; }
+        th { background: #f8f9fa; color: var(--dark); }
+        .summary-container { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 25px; }
+        .stat-box { padding: 20px; border-radius: 12px; color: white; text-align: center; }
+        .stat-total { background: var(--dark); }
+        .stat-count { background: var(--primary); }
+        @media print { .no-print { display: none !important; } .admin-container { box-shadow: none; width: 100%; padding: 0; } }
+    </style>
+</head>
+<body>
+
+<div id="login-overlay">
+    <div class="login-box">
+        <h2 style="color: var(--dark);">چوونەژوورەوە</h2>
+        <input type="text" id="userInput" placeholder="ناوی بەکارهێنەر">
+        <input type="password" id="passInput" placeholder="وشەی تێپەڕ">
+        <button class="btn btn-primary" style="width: 100%; justify-content: center;" onclick="login()">چوونەژوورەوە</button>
+    </div>
+</div>
+
+<div class="admin-container" id="mainApp">
+    <div class="header">
+        <div>
+            <h2 style="margin:0; color: var(--dark);">سیستەمی ڕاپۆرت و وردبینی</h2>
+            <div id="userStatus" style="color: var(--primary); font-weight: bold; margin-top: 5px;"></div>
+        </div>
+        <div class="no-print">
+            <button id="addCarBtn" class="btn btn-purple" style="display:none;" onclick="window.open('https://arduexcel.github.io/data-iin/', '_blank')">🚗 وەسڵی نوێ</button>
+            <button id="adminOnlyBtn" class="btn btn-dark" style="display:none;" onclick="toggleModal(true)">👥 کارمەندان</button>
+            
+            <button class="btn btn-success" onclick="window.print()">🖨️ پڕینت</button>
+            <button class="btn btn-danger" onclick="logout()">🚪 دەرچوون</button>
+        </div>
+    </div>
+
+    <div class="no-print" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; background: #f9f9f9; padding: 20px; border-radius: 12px; margin-bottom: 25px;">
+        <div>
+            <label style="font-weight: bold;">بەروار:</label>
+            <input type="date" id="reportDate" onchange="fetchInvoices()">
+        </div>
+        <div>
+            <label style="font-weight: bold;">هێڵ:</label>
+            <select id="lineFilter" onchange="fetchInvoices()">
+                <option value="">هەموو هێڵەکان</option>
+                <option value="هەولێر">هەولێر</option>
+                <option value="کەرکوک">کەرکوک</option>
+                <option value="ڕانیە">ڕانیە</option>
+                <option value="قەڵادزێ">قەڵادزێ</option>
+                <option value="بغداد">بغداد</option>
+                <option value="چەمچەماڵ">چەمچەماڵ</option>
+                <option value="دووز">دووز</option>
+                <option value="کۆیە">کۆیە</option>
+                <option value="پارکینگ">پارکینگ</option>
+            </select>
+        </div>
+        <div>
+            <label style="font-weight: bold;">کارمەند:</label>
+            <select id="empFilter" onchange="fetchInvoices()">
+                <option value="">هەموو کارمەندەکان</option>
+            </select>
+        </div>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>کات</th>
+                <th>کارمەند</th>
+                <th>ژمارەی ئۆتۆمبێل</th>
+                <th>هێڵ</th>
+                <th>نرخ (دینار)</th>
+            </tr>
+        </thead>
+        <tbody id="invoiceBody"></tbody>
+    </table>
+
+    <div class="summary-container">
+        <div class="stat-box stat-count">
+            <div style="font-size: 14px; opacity: 0.9;">کۆی وەسڵەکان</div>
+            <div id="totalCount" style="font-size: 24px; font-weight: bold;">0</div>
+        </div>
+        <div class="stat-box stat-total">
+            <div style="font-size: 14px; opacity: 0.9;">کۆی داهات</div>
+            <div id="totalMoney" style="font-size: 24px; font-weight: bold;">0 IQD</div>
+        </div>
+    </div>
+</div>
+
+<div id="userModal" class="modal">
+    <div class="modal-content">
+        <div style="display:flex; justify-content:space-between; align-items: center; margin-bottom: 20px;">
+            <h3>بەڕێوەبردنی بەکارهێنەران</h3>
+            <button class="btn btn-danger" onclick="toggleModal(false)">X</button>
+        </div>
+        <div style="background: #f8f9fa; padding: 15px; border-radius: 10px; margin-bottom: 20px;">
+            <input type="text" id="newUserName" placeholder="ناو">
+            <input type="text" id="newUserPass" placeholder="پاسۆرد">
+            <select id="newUserRole">
+                <option value="staff">کارمەندی وەسڵ بڕ</option>
+                <option value="accounts">ژمێریار (تەنها بینین)</option>
+                <option value="admin">بەڕێوەبەر (هەموو دەسەڵاتێک)</option>
+            </select>
+            <button class="btn btn-success" style="width:100%" onclick="createUser()">تۆمارکردن</button>
+        </div>
+        <table style="font-size: 14px;">
+            <thead><tr><th>ناو</th><th>پاسۆرد</th><th>دەسەڵات</th><th>کردار</th></tr></thead>
+            <tbody id="userTableBody"></tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyCuUstd-6d0E-EbmQipv2mWk-bA55ajpQ0",
+        authDomain: "car-system-4594d.firebaseapp.com",
+        projectId: "car-system-4594d",
+        storageBucket: "car-system-4594d.firebasestorage.app",
+        messagingSenderId: "719030469585",
+        appId: "1:719030469585:web:7a23645b9e684b727dd6f0"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    let currentUser = null;
+
+    async function login() {
+        const user = document.getElementById('userInput').value.trim();
+        const pass = document.getElementById('passInput').value;
+        const snap = await db.collection("Employees").where("name", "==", user).where("password", "==", pass).get();
+
+        if (!snap.empty) {
+            currentUser = snap.docs[0].data();
+            if (currentUser.role === 'staff') return alert("تۆ دەسەڵاتی بینینی ئەم بەشەت نییە!");
+            startApp();
+        } else { alert("ناو یان پاسۆرد هەڵەیە!"); }
+    }
+
+    function logout() {
+        currentUser = null;
+        document.getElementById('mainApp').style.display = 'none';
+        document.getElementById('login-overlay').style.display = 'flex';
+        document.getElementById('userInput').value = "";
+        document.getElementById('passInput').value = "";
+        // پاککردنەوەی شاشەکە لە دوگمە شاردراوەکان
+        document.getElementById('adminOnlyBtn').style.display = 'none';
+        document.getElementById('addCarBtn').style.display = 'none';
+    }
+
+    function startApp() {
+        document.getElementById('login-overlay').style.display = 'none';
+        document.getElementById('mainApp').style.display = 'block';
+        document.getElementById('userStatus').innerText = "بەخێرهاتی  " + (currentUser.role === 'admin' ? ": " : ": ") + currentUser.name;
+        document.getElementById('reportDate').valueAsDate = new Date();
+
+        // لۆژیکی دەسەڵاتەکان
+        if (currentUser.role === 'admin') {
+            document.getElementById('adminOnlyBtn').style.display = 'inline-flex';
+            document.getElementById('addCarBtn').style.display = 'inline-flex';
+            loadUsersList();
+        } else {
+            // ئەگەر ژمێریار بوو، دوگمەکان بشارەوە (بۆ دڵنیایی زیاتر)
+            document.getElementById('adminOnlyBtn').style.display = 'none';
+            document.getElementById('addCarBtn').style.display = 'none';
+        }
+
+        // پڕکردنەوەی لیستی وەسڵبڕەکان بۆ فلتەر
+        const empSelect = document.getElementById('empFilter');
+        empSelect.innerHTML = '<option value="">هەموو کارمەندەکان</option>';
+        db.collection("Employees").where("role", "==", "staff").get().then(snap => {
+            snap.forEach(doc => {
+                empSelect.innerHTML += `<option value="${doc.data().name}">${doc.data().name}</option>`;
+            });
+        });
+
+        fetchInvoices();
+    }
+
+    async function fetchInvoices() {
+        const date = document.getElementById('reportDate').value;
+        const lineVal = document.getElementById('lineFilter').value;
+        const empVal = document.getElementById('empFilter').value;
+        const snap = await db.collection("Invoices").where("searchDate", "==", date).get();
+        const tbody = document.getElementById('invoiceBody');
+        tbody.innerHTML = "";
+        let totalMoney = 0; let count = 0;
+
+        snap.forEach(doc => {
+            const inv = doc.data();
+            const matchLine = (lineVal === "" || inv.line === lineVal);
+            const matchEmp = (empVal === "" || inv.employee === empVal);
+            if (matchLine && matchEmp) {
+                count++;
+                totalMoney += parseInt(inv.price) || 0;
+                tbody.innerHTML += `<tr>
+                    <td>${inv.date.split(',')[1] || inv.date}</td>
+                    <td>${inv.employee}</td>
+                    <td><b>${inv.carNumber}</b></td>
+                    <td>${inv.line}</td>
+                    <td>${parseInt(inv.price).toLocaleString()} IQD</td>
+                </tr>`;
+            }
+        });
+        document.getElementById('totalCount').innerText = count;
+        document.getElementById('totalMoney').innerText = totalMoney.toLocaleString() + " IQD";
+    }
+
+    function toggleModal(s) { document.getElementById('userModal').style.display = s ? 'flex' : 'none'; }
+
+    async function createUser() {
+        if(currentUser.role !== 'admin') return;
+        const n = document.getElementById('newUserName').value.trim();
+        const p = document.getElementById('newUserPass').value.trim();
+        const r = document.getElementById('newUserRole').value;
+        if(!n || !p) return alert("خانەکان پڕ بکەرەوە");
+        await db.collection("Employees").add({ name: n, password: p, role: r, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+        alert("تۆمارکرا");
+    }
+
+    function loadUsersList() {
+        db.collection("Employees").orderBy("createdAt", "desc").onSnapshot(snap => {
+            const tbody = document.getElementById('userTableBody');
+            tbody.innerHTML = "";
+            snap.forEach(doc => {
+                const u = doc.data();
+                tbody.innerHTML += `<tr>
+                    <td>${u.name}</td>
+                    <td>${u.password}</td>
+                    <td>${u.role}</td>
+                    <td><button onclick="deleteUser('${doc.id}')" style="color:red;border:none;background:none;cursor:pointer;">سڕینەوە</button></td>
+                </tr>`;
+            });
+        });
+    }
+
+    async function deleteUser(id) {
+        if(currentUser.role !== 'admin') return;
+        if(confirm("دڵنیای؟")) await db.collection("Employees").doc(id).delete();
+    }
+</script>
+</body>
+</html>
