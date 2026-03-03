@@ -25,6 +25,11 @@
         .btn-success { background: var(--success); }
         .btn-purple { background: var(--purple); }
 
+        /* ستایڵی نوێ بۆ داتای سڕاوە */
+        .deleted-row { background-color: #f2f2f2 !important; color: #a0a0a0 !important; }
+        .deleted-row td { text-decoration: line-through; opacity: 0.7; }
+        .deleted-row .reason-cell { text-decoration: none !important; color: var(--danger); font-size: 13px; font-weight: bold; opacity: 1; }
+
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(5px); }
         .modal-content { background: white; padding: 30px; border-radius: 20px; width: 90%; max-width: 800px; max-height: 85vh; overflow-y: auto; position: relative; }
         
@@ -107,6 +112,8 @@
                 <th>ژمارەی ئۆتۆمبێل</th>
                 <th>هێڵ</th>
                 <th>نرخ (دینار)</th>
+                <th>تێبینی سڕینەوە</th>
+                <th class="no-print">کردار</th>
             </tr>
         </thead>
         <tbody id="invoiceBody"></tbody>
@@ -114,11 +121,11 @@
 
     <div class="summary-container">
         <div class="stat-box stat-count">
-            <div style="font-size: 14px; opacity: 0.9;">کۆی وەسڵەکان</div>
+            <div style="font-size: 14px; opacity: 0.9;">کۆی وەسڵەکان (کە نەسڕاونەتەوە)</div>
             <div id="totalCount" style="font-size: 24px; font-weight: bold;">0</div>
         </div>
         <div class="stat-box stat-total">
-            <div style="font-size: 14px; opacity: 0.9;">کۆی داهات</div>
+            <div style="font-size: 14px; opacity: 0.9;">کۆی داهاتی وەسڵە چالاکەکان</div>
             <div id="totalMoney" style="font-size: 24px; font-weight: bold;">0 IQD</div>
         </div>
     </div>
@@ -196,7 +203,6 @@
         document.getElementById('userStatus').innerText = `بەخێرهاتی: ${currentUser.name} (${displayRole})`;
         document.getElementById('reportDate').valueAsDate = new Date();
 
-        // دەسەڵاتی تەواو بۆ هەردووکیان
         if (currentUser.role === 'admin' || currentUser.role === 'audit') {
             document.getElementById('adminOnlyBtn').style.display = 'inline-flex';
             document.getElementById('addCarBtn').style.display = 'inline-flex';
@@ -227,20 +233,67 @@
             const inv = doc.data();
             const matchLine = (lineVal === "" || inv.line === lineVal);
             const matchEmp = (empVal === "" || inv.employee === empVal);
+            
             if (matchLine && matchEmp) {
-                count++;
-                totalMoney += parseInt(inv.price) || 0;
-                tbody.innerHTML += `<tr>
+                const isDeleted = (inv.status === 'deleted');
+                
+                // تەنها ئەوانەی نەسڕاونەتەوە هەژمار دەکرێن بۆ کۆی گشتی
+                if (!isDeleted) {
+                    count++;
+                    totalMoney += parseInt(inv.price) || 0;
+                }
+
+                let deleteReasonText = inv.deleteReason || "";
+                let rowClass = isDeleted ? "deleted-row" : "";
+                
+                let actionBtn = "";
+                if ((currentUser.role === 'admin' || currentUser.role === 'audit') && !isDeleted) {
+                    actionBtn = `<button class="btn btn-danger no-print" style="padding:5px 10px; font-size:12px;" onclick="softDeleteInvoice('${doc.id}', '${inv.carNumber}')">سڕینەوە</button>`;
+                } else if (isDeleted) {
+                    actionBtn = `<span style="font-size:12px; color:gray;">سڕاوەتەوە</span>`;
+                }
+
+                tbody.innerHTML += `<tr class="${rowClass}">
                     <td>${inv.date.split(',')[1] || inv.date}</td>
                     <td>${inv.employee}</td>
                     <td><b>${inv.carNumber}</b></td>
                     <td>${inv.line}</td>
                     <td>${parseInt(inv.price).toLocaleString()} IQD</td>
+                    <td class="reason-cell">${deleteReasonText}</td>
+                    <td class="no-print">${actionBtn}</td>
                 </tr>`;
             }
         });
         document.getElementById('totalCount').innerText = count;
         document.getElementById('totalMoney').innerText = totalMoney.toLocaleString() + " IQD";
+    }
+
+    // فەنکشنی سڕینەوەی کاتی (Soft Delete)
+    async function softDeleteInvoice(id, carNum) {
+        if(currentUser.role !== 'admin' && currentUser.role !== 'audit') return;
+
+        const reason = prompt(`هۆکاری سڕینەوەی وەسڵی سەیارەی (${carNum}) بنووسە:`);
+        
+        if (reason === null) return;
+        if (reason.trim() === "") {
+            alert("پێویستە هۆکاری سڕینەوە بنووسیت!");
+            return;
+        }
+
+        try {
+            await db.collection("Invoices").doc(id).update({
+                status: 'deleted',
+                deleteReason: reason,
+                deletedBy: currentUser.name,
+                deletedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            
+            alert("وەسڵەکە بە سەرکەوتوویی نیشانەی سڕینەوەی لێدرا.");
+            fetchInvoices();
+        } catch (error) {
+            console.error("Error:", error);
+            alert("هەڵەیەک ڕوویدا!");
+        }
     }
 
     function toggleModal(s) { document.getElementById('userModal').style.display = s ? 'flex' : 'none'; }
