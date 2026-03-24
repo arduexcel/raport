@@ -156,6 +156,7 @@
 </div>
 
 <script>
+    // کۆنفیگی داتابەیسی یەکەم (بۆ خوێندنەوەی ڕاپۆرت و کارمەندەکان)
     const firebaseConfig = {
         apiKey: "AIzaSyCuUstd-6d0E-EbmQipv2mWk-bA55ajpQ0",
         authDomain: "car-system-4594d.firebaseapp.com",
@@ -164,15 +165,29 @@
         messagingSenderId: "719030469585",
         appId: "1:719030469585:web:7a23645b9e684b727dd6f0"
     };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
+    
+    // کۆنفیگی داتابەیسی دووەم (تەنها بۆ سڕینەوەی هاوکات)
+    const config2 = { 
+        apiKey: "AIzaSyAMI84_IuKUZVqc8ImMW7eahru20cTkjFM", 
+        authDomain: "sysam-k.firebaseapp.com", 
+        projectId: "sysam-k", 
+        storageBucket: "sysam-k.firebasestorage.app", 
+        messagingSenderId: "905972435434", 
+        appId: "1:905972435434:web:2501e11240523f8368ca93" 
+    };
+
+    const app1 = firebase.initializeApp(firebaseConfig, "app1");
+    const app2 = firebase.initializeApp(config2, "app2");
+    
+    const db1 = app1.firestore();
+    const db2 = app2.firestore();
 
     let currentUser = null;
 
     async function login() {
         const user = document.getElementById('userInput').value.trim();
         const pass = document.getElementById('passInput').value;
-        const snap = await db.collection("Employees").where("name", "==", user).where("password", "==", pass).get();
+        const snap = await db1.collection("Employees").where("name", "==", user).where("password", "==", pass).get();
 
         if (!snap.empty) {
             currentUser = snap.docs[0].data();
@@ -209,7 +224,7 @@
 
         const empSelect = document.getElementById('empFilter');
         empSelect.innerHTML = '<option value="">هەموو کارمەندەکان</option>';
-        db.collection("Employees").where("role", "==", "staff").get().then(snap => {
+        db1.collection("Employees").where("role", "==", "staff").get().then(snap => {
             snap.forEach(doc => {
                 empSelect.innerHTML += `<option value="${doc.data().name}">${doc.data().name}</option>`;
             });
@@ -218,73 +233,81 @@
         fetchInvoices();
     }
 
-   async function fetchInvoices() {
-    const date = document.getElementById('reportDate').value; // وەک 2026-03-25
-    const lineVal = document.getElementById('lineFilter').value;
-    const empVal = document.getElementById('empFilter').value;
-
-    // لێرە گۆڕانکاری کراوە: ڕاستەوخۆ دەچێتە ناو دۆکیومێنتی بەروارەکە
-    const snap = await db.collection("Invoices").doc(date).collection("AllInvoices").orderBy("timestamp", "desc").get();
-    
-    const tbody = document.getElementById('invoiceBody');
-    tbody.innerHTML = "";
-    let totalMoney = 0; let count = 0;
-
-    snap.forEach(doc => {
-        const inv = doc.data();
-        const matchLine = (lineVal === "" || inv.line === lineVal);
-        const matchEmp = (empVal === "" || inv.employee === empVal);
+    async function fetchInvoices() {
+        const date = document.getElementById('reportDate').value;
+        const lineVal = document.getElementById('lineFilter').value;
+        const empVal = document.getElementById('empFilter').value;
         
-        if (matchLine && matchEmp) {
-            const isDeleted = (inv.status === 'deleted' || inv.status === 'canceled');
-            if (!isDeleted) {
-                count++;
-                totalMoney += parseInt(inv.price) || 0;
-            }
+        // گۆڕینی لۆجیکی خوێندنەوە بۆ Sub-collection
+        const snap = await db1.collection("Invoices").doc(date).collection("AllInvoices").orderBy("timestamp", "desc").get();
+        
+        const tbody = document.getElementById('invoiceBody');
+        tbody.innerHTML = "";
+        let totalMoney = 0; let count = 0;
 
-            let deleteReasonText = inv.deleteReason || "";
-            let rowClass = isDeleted ? "deleted-row" : "";
+        snap.forEach(doc => {
+            const inv = doc.data();
+            const matchLine = (lineVal === "" || inv.line === lineVal);
+            const matchEmp = (empVal === "" || inv.employee === empVal);
             
-            let actionBtn = "";
-            if ((currentUser.role === 'admin' || currentUser.role === 'audit') && !isDeleted) {
-                // ناردنی ئایدی و بەروار بۆ فەنکشنی سڕینەوە
-                actionBtn = `<button class="btn btn-danger no-print" style="padding:5px 10px; font-size:12px;" onclick="softDeleteInvoice('${doc.id}', '${inv.carNumber}', '${date}')">سڕینەوە</button>`;
-            } else if (isDeleted) {
-                actionBtn = `<span style="font-size:12px; color:gray;">سڕاوەتەوە</span>`;
+            if (matchLine && matchEmp) {
+                const isDeleted = (inv.status === 'deleted' || inv.status === 'canceled');
+                if (!isDeleted) {
+                    count++;
+                    totalMoney += parseInt(inv.price) || 0;
+                }
+
+                let deleteReasonText = inv.deleteReason || "";
+                let rowClass = isDeleted ? "deleted-row" : "";
+                let carType = inv.type || "نادیار";
+                
+                let actionBtn = "";
+                if ((currentUser.role === 'admin' || currentUser.role === 'audit') && !isDeleted) {
+                    actionBtn = `<button class="btn btn-danger no-print" style="padding:5px 10px; font-size:12px;" onclick="softDeleteInvoice('${doc.id}', '${inv.carNumber}', '${date}')">سڕینەوە</button>`;
+                } else if (isDeleted) {
+                    actionBtn = `<span style="font-size:12px; color:gray;">سڕاوەتەوە</span>`;
+                }
+
+                tbody.innerHTML += `<tr class="${rowClass}">
+                    <td>${inv.date ? (inv.date.includes(',') ? inv.date.split(',')[1] : inv.date) : '---'}</td>
+                    <td>${inv.employee}</td>
+                    <td><b>${inv.carNumber}</b></td>
+                    <td>${carType}</td>
+                    <td>${inv.line}</td>
+                    <td>${parseInt(inv.price).toLocaleString()} IQD</td>
+                    <td class="reason-cell">${deleteReasonText}</td>
+                    <td class="no-print">${actionBtn}</td>
+                </tr>`;
             }
-
-            tbody.innerHTML += `<tr class="${rowClass}">
-                <td>${inv.date ? (inv.date.includes(',') ? inv.date.split(',')[1] : inv.date) : '---'}</td>
-                <td>${inv.employee}</td>
-                <td><b>${inv.carNumber}</b></td>
-                <td>${inv.type || "نادیار"}</td>
-                <td>${inv.line}</td>
-                <td>${parseInt(inv.price).toLocaleString()} IQD</td>
-                <td class="reason-cell">${deleteReasonText}</td>
-                <td class="no-print">${actionBtn}</td>
-            </tr>`;
-        }
-    });
-    document.getElementById('totalCount').innerText = count;
-    document.getElementById('totalMoney').innerText = totalMoney.toLocaleString() + " IQD";
-}
-    async function softDeleteInvoice(id, carNum, date) {
-    if(currentUser.role !== 'admin' && currentUser.role !== 'audit') return;
-    const reason = prompt(`هۆکاری سڕینەوەی وەسڵی سەیارەی (${carNum}) بنووسە:`);
-    if (reason === null || reason.trim() === "") return;
-
-    try {
-        // نوێکردنەوەی دۆخی وەسڵەکە لەناو سێب-کۆلیکشنەکە
-        await db.collection("Invoices").doc(date).collection("AllInvoices").doc(id).update({
-            status: 'deleted',
-            deleteReason: reason,
-            deletedBy: currentUser.name,
-            deletedAt: firebase.firestore.FieldValue.serverTimestamp()
         });
-        alert("سڕایەوە");
-        fetchInvoices();
-    } catch (error) { alert("هەڵەیەک ڕوویدا!"); }
-}
+        document.getElementById('totalCount').innerText = count;
+        document.getElementById('totalMoney').innerText = totalMoney.toLocaleString() + " IQD";
+    }
+
+    async function softDeleteInvoice(id, carNum, date) {
+        if(currentUser.role !== 'admin' && currentUser.role !== 'audit') return;
+        const reason = prompt(`هۆکاری سڕینەوەی وەسڵی سەیارەی (${carNum}) بنووسە:`);
+        if (reason === null) return;
+        if (reason.trim() === "") {
+            alert("پێویستە هۆکاری سڕینەوە بنووسیت!");
+            return;
+        }
+        try {
+            // سڕینەوە لە فایەربەیسی یەکەم (Update status)
+            await db1.collection("Invoices").doc(date).collection("AllInvoices").doc(id).update({
+                status: 'deleted',
+                deleteReason: reason,
+                deletedBy: currentUser.name,
+                deletedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            
+            // سڕینەوەی یەکجاری لە فایەربەیسی دووەم (Delete document)
+            await db2.collection("Invoices").doc(date).collection("AllInvoices").doc(id).delete();
+
+            alert("سڕایەوە");
+            fetchInvoices();
+        } catch (error) { alert("هەڵەیەک ڕوویدا: " + error.message); }
+    }
 
     function toggleModal(s) { document.getElementById('userModal').style.display = s ? 'flex' : 'none'; }
 
@@ -294,12 +317,13 @@
         const p = document.getElementById('newUserPass').value.trim();
         const r = document.getElementById('newUserRole').value;
         if(!n || !p) return alert("خانەکان پڕ بکەرەوە");
-        await db.collection("Employees").add({ name: n, password: p, role: r, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+        await db1.collection("Employees").add({ name: n, password: p, role: r, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
         alert("تۆمارکرا");
+        toggleModal(false);
     }
 
     function loadUsersList() {
-        db.collection("Employees").orderBy("createdAt", "desc").onSnapshot(snap => {
+        db1.collection("Employees").orderBy("createdAt", "desc").onSnapshot(snap => {
             const tbody = document.getElementById('userTableBody');
             tbody.innerHTML = "";
             snap.forEach(doc => {
@@ -321,7 +345,7 @@
 
     async function deleteUser(id) {
         if(currentUser.role !== 'admin' && currentUser.role !== 'audit') return;
-        if(confirm("دڵنیای؟")) await db.collection("Employees").doc(id).delete();
+        if(confirm("دڵنیای؟")) await db1.collection("Employees").doc(id).delete();
     }
 </script>
 </body>
