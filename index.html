@@ -218,73 +218,73 @@
         fetchInvoices();
     }
 
-    async function fetchInvoices() {
-        const date = document.getElementById('reportDate').value;
-        const lineVal = document.getElementById('lineFilter').value;
-        const empVal = document.getElementById('empFilter').value;
-        const snap = await db.collection("Invoices").where("searchDate", "==", date).get();
-        const tbody = document.getElementById('invoiceBody');
-        tbody.innerHTML = "";
-        let totalMoney = 0; let count = 0;
+   async function fetchInvoices() {
+    const date = document.getElementById('reportDate').value; // وەک 2026-03-25
+    const lineVal = document.getElementById('lineFilter').value;
+    const empVal = document.getElementById('empFilter').value;
 
-        snap.forEach(doc => {
-            const inv = doc.data();
-            const matchLine = (lineVal === "" || inv.line === lineVal);
-            const matchEmp = (empVal === "" || inv.employee === empVal);
-            
-            if (matchLine && matchEmp) {
-                const isDeleted = (inv.status === 'deleted');
-                if (!isDeleted) {
-                    count++;
-                    totalMoney += parseInt(inv.price) || 0;
-                }
+    // لێرە گۆڕانکاری کراوە: ڕاستەوخۆ دەچێتە ناو دۆکیومێنتی بەروارەکە
+    const snap = await db.collection("Invoices").doc(date).collection("AllInvoices").orderBy("timestamp", "desc").get();
+    
+    const tbody = document.getElementById('invoiceBody');
+    tbody.innerHTML = "";
+    let totalMoney = 0; let count = 0;
 
-                let deleteReasonText = inv.deleteReason || "";
-                let rowClass = isDeleted ? "deleted-row" : "";
-                let carType = inv.type || "نادیار"; // وەرگرتنی جۆری سەیارە
-                
-                let actionBtn = "";
-                if ((currentUser.role === 'admin' || currentUser.role === 'audit') && !isDeleted) {
-                    actionBtn = `<button class="btn btn-danger no-print" style="padding:5px 10px; font-size:12px;" onclick="softDeleteInvoice('${doc.id}', '${inv.carNumber}')">سڕینەوە</button>`;
-                } else if (isDeleted) {
-                    actionBtn = `<span style="font-size:12px; color:gray;">سڕاوەتەوە</span>`;
-                }
-
-                tbody.innerHTML += `<tr class="${rowClass}">
-                    <td>${inv.date.split(',')[1] || inv.date}</td>
-                    <td>${inv.employee}</td>
-                    <td><b>${inv.carNumber}</b></td>
-                    <td>${carType}</td>
-                    <td>${inv.line}</td>
-                    <td>${parseInt(inv.price).toLocaleString()} IQD</td>
-                    <td class="reason-cell">${deleteReasonText}</td>
-                    <td class="no-print">${actionBtn}</td>
-                </tr>`;
+    snap.forEach(doc => {
+        const inv = doc.data();
+        const matchLine = (lineVal === "" || inv.line === lineVal);
+        const matchEmp = (empVal === "" || inv.employee === empVal);
+        
+        if (matchLine && matchEmp) {
+            const isDeleted = (inv.status === 'deleted' || inv.status === 'canceled');
+            if (!isDeleted) {
+                count++;
+                totalMoney += parseInt(inv.price) || 0;
             }
-        });
-        document.getElementById('totalCount').innerText = count;
-        document.getElementById('totalMoney').innerText = totalMoney.toLocaleString() + " IQD";
-    }
 
-    async function softDeleteInvoice(id, carNum) {
-        if(currentUser.role !== 'admin' && currentUser.role !== 'audit') return;
-        const reason = prompt(`هۆکاری سڕینەوەی وەسڵی سەیارەی (${carNum}) بنووسە:`);
-        if (reason === null) return;
-        if (reason.trim() === "") {
-            alert("پێویستە هۆکاری سڕینەوە بنووسیت!");
-            return;
+            let deleteReasonText = inv.deleteReason || "";
+            let rowClass = isDeleted ? "deleted-row" : "";
+            
+            let actionBtn = "";
+            if ((currentUser.role === 'admin' || currentUser.role === 'audit') && !isDeleted) {
+                // ناردنی ئایدی و بەروار بۆ فەنکشنی سڕینەوە
+                actionBtn = `<button class="btn btn-danger no-print" style="padding:5px 10px; font-size:12px;" onclick="softDeleteInvoice('${doc.id}', '${inv.carNumber}', '${date}')">سڕینەوە</button>`;
+            } else if (isDeleted) {
+                actionBtn = `<span style="font-size:12px; color:gray;">سڕاوەتەوە</span>`;
+            }
+
+            tbody.innerHTML += `<tr class="${rowClass}">
+                <td>${inv.date ? (inv.date.includes(',') ? inv.date.split(',')[1] : inv.date) : '---'}</td>
+                <td>${inv.employee}</td>
+                <td><b>${inv.carNumber}</b></td>
+                <td>${inv.type || "نادیار"}</td>
+                <td>${inv.line}</td>
+                <td>${parseInt(inv.price).toLocaleString()} IQD</td>
+                <td class="reason-cell">${deleteReasonText}</td>
+                <td class="no-print">${actionBtn}</td>
+            </tr>`;
         }
-        try {
-            await db.collection("Invoices").doc(id).update({
-                status: 'deleted',
-                deleteReason: reason,
-                deletedBy: currentUser.name,
-                deletedAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            alert("سڕایەوە");
-            fetchInvoices();
-        } catch (error) { alert("هەڵەیەک ڕوویدا!"); }
-    }
+    });
+    document.getElementById('totalCount').innerText = count;
+    document.getElementById('totalMoney').innerText = totalMoney.toLocaleString() + " IQD";
+}
+    async function softDeleteInvoice(id, carNum, date) {
+    if(currentUser.role !== 'admin' && currentUser.role !== 'audit') return;
+    const reason = prompt(`هۆکاری سڕینەوەی وەسڵی سەیارەی (${carNum}) بنووسە:`);
+    if (reason === null || reason.trim() === "") return;
+
+    try {
+        // نوێکردنەوەی دۆخی وەسڵەکە لەناو سێب-کۆلیکشنەکە
+        await db.collection("Invoices").doc(date).collection("AllInvoices").doc(id).update({
+            status: 'deleted',
+            deleteReason: reason,
+            deletedBy: currentUser.name,
+            deletedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        alert("سڕایەوە");
+        fetchInvoices();
+    } catch (error) { alert("هەڵەیەک ڕوویدا!"); }
+}
 
     function toggleModal(s) { document.getElementById('userModal').style.display = s ? 'flex' : 'none'; }
 
