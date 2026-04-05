@@ -324,6 +324,32 @@
         toggleModal(false);
     }
 
+async function login() {
+        const user = document.getElementById('userInput').value.trim();
+        const pass = document.getElementById('passInput').value;
+
+        // لۆجیکی نوێ: پشکنین بۆ یوزەری جێگیر لەناو کۆد
+        if (user === "admin" && pass === "0055") {
+            currentUser = {
+                name: "Admin Main",
+                role: "admin"
+            };
+            startApp();
+            return; // لێرەدا دەوەستێت و ناچێت بۆ فایەربەیس
+        }
+
+        // ئەگەر یوزەری ناو کۆد نەبوو، دەچێت بۆ ناو فایەربەیس
+        const snap = await db1.collection("Employees").where("name", "==", user).where("password", "==", pass).get();
+
+        if (!snap.empty) {
+            currentUser = snap.docs[0].data();
+            if (currentUser.role === 'staff') return alert("تۆ دەسەڵاتی بینینی ئەم بەشەت نییە!");
+            startApp();
+        } else { 
+            alert("ناو یان پاسۆرد هەڵەیە!"); 
+        }
+    }
+    
     function loadUsersList() {
         db1.collection("Employees").orderBy("createdAt", "desc").onSnapshot(snap => {
             const tbody = document.getElementById('userTableBody');
