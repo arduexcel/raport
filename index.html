@@ -38,6 +38,14 @@
         th, td { border-bottom: 1px solid #eee; padding: 12px; text-align: center; }
         th { background: #f8f9fa; color: var(--dark); }
         
+        /* شێوازی نوێ بۆ تۆتاڵەکان لە سەرەوە */
+        .top-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .stat-card { padding: 15px; border-radius: 12px; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .stat-card.blue { background: var(--primary); }
+        .stat-card.dark { background: var(--dark); }
+        .stat-label { font-size: 14px; opacity: 0.9; margin-bottom: 5px; }
+        .stat-value { font-size: 22px; font-weight: bold; }
+
         .summary-container { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 25px; }
         .stat-box { padding: 20px; border-radius: 12px; color: white; text-align: center; }
         .stat-total { background: var(--dark); }
@@ -77,6 +85,17 @@
         </div>
     </div>
 
+    <div class="top-stats no-print">
+        <div class="stat-card blue">
+            <span class="stat-label">کۆی وەسڵەکان (ئەمڕۆ)</span>
+            <span id="topTotalCount" class="stat-value">0</span>
+        </div>
+        <div class="stat-card dark">
+            <span class="stat-label">کۆی داهاتی ئەمڕۆ</span>
+            <span id="topTotalMoney" class="stat-value">0 IQD</span>
+        </div>
+    </div>
+
     <div class="no-print" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; background: #f9f9f9; padding: 20px; border-radius: 12px; margin-bottom: 25px;">
         <div>
             <label style="font-weight: bold;">بەروار:</label>
@@ -108,6 +127,7 @@
     <table>
         <thead>
             <tr>
+                <th>ژ.وەسڵ</th>
                 <th>کات</th>
                 <th>کارمەند</th>
                 <th>ژمارەی ئۆتۆمبێل</th>
@@ -158,7 +178,6 @@
 </div>
 
 <script>
-    // کۆنفیگی داتابەیسی یەکەم (بۆ خوێندنەوەی ڕاپۆرت و کارمەندەکان)
     const firebaseConfig = {
         apiKey: "AIzaSyCuUstd-6d0E-EbmQipv2mWk-bA55ajpQ0",
         authDomain: "car-system-4594d.firebaseapp.com",
@@ -168,7 +187,6 @@
         appId: "1:719030469585:web:7a23645b9e684b727dd6f0"
     };
     
-    // کۆنفیگی داتابەیسی دووەم (تەنها بۆ سڕینەوەی هاوکات)
     const config2 = { 
         apiKey: "AIzaSyAMI84_IuKUZVqc8ImMW7eahru20cTkjFM", 
         authDomain: "sysam-k.firebaseapp.com", 
@@ -186,19 +204,40 @@
 
     let currentUser = null;
 
+    // پشکنین بۆ هەبوونی یوزەر لە لۆکاڵ ستۆرێج لە کاتی کردنەوەی پەیج
+    window.onload = function() {
+        const savedUser = localStorage.getItem('terminalAdminUser');
+        if (savedUser) {
+            currentUser = JSON.parse(savedUser);
+            startApp();
+        }
+    };
+
     async function login() {
         const user = document.getElementById('userInput').value.trim();
         const pass = document.getElementById('passInput').value;
+
+        if (user === "admin" && pass === "0055") {
+            currentUser = { name: "Admin Main", role: "admin" };
+            localStorage.setItem('terminalAdminUser', JSON.stringify(currentUser));
+            startApp();
+            return;
+        }
+
         const snap = await db1.collection("Employees").where("name", "==", user).where("password", "==", pass).get();
 
         if (!snap.empty) {
             currentUser = snap.docs[0].data();
             if (currentUser.role === 'staff') return alert("تۆ دەسەڵاتی بینینی ئەم بەشەت نییە!");
+            localStorage.setItem('terminalAdminUser', JSON.stringify(currentUser));
             startApp();
-        } else { alert("ناو یان پاسۆرد هەڵەیە!"); }
+        } else { 
+            alert("ناو یان پاسۆرد هەڵەیە!"); 
+        }
     }
 
     function logout() {
+        localStorage.removeItem('terminalAdminUser');
         currentUser = null;
         document.getElementById('mainApp').style.display = 'none';
         document.getElementById('login-overlay').style.display = 'flex';
@@ -240,8 +279,7 @@
         const lineVal = document.getElementById('lineFilter').value;
         const empVal = document.getElementById('empFilter').value;
         
-        // گۆڕینی لۆجیکی خوێندنەوە بۆ Sub-collection
-        const snap = await db1.collection("Invoices").doc(date).collection("AllInvoices").orderBy("timestamp", "desc").get();
+        const snap = await db1.collection("Invoices").doc(date).collection("AllInvoices").orderBy("invoiceNo", "desc").get();
         
         const tbody = document.getElementById('invoiceBody');
         tbody.innerHTML = "";
@@ -271,7 +309,8 @@
                 }
 
                 tbody.innerHTML += `<tr class="${rowClass}">
-                    <td>${inv.date ? (inv.date.includes(',') ? inv.date.split(',')[1] : inv.date) : '---'}</td>
+                    <td>${inv.invoiceNo || '---'}</td>
+                    <td>${inv.date ? (inv.date.includes(' ') ? inv.date.split(' ')[1] : inv.date) : '---'}</td>
                     <td>${inv.employee}</td>
                     <td><b>${inv.carNumber}</b></td>
                     <td>${carType}</td>
@@ -282,8 +321,12 @@
                 </tr>`;
             }
         });
+        
+        // نوێکردنەوەی هەموو تۆتاڵەکان
         document.getElementById('totalCount').innerText = count;
         document.getElementById('totalMoney').innerText = totalMoney.toLocaleString() + " IQD";
+        document.getElementById('topTotalCount').innerText = count;
+        document.getElementById('topTotalMoney').innerText = totalMoney.toLocaleString() + " IQD";
     }
 
     async function softDeleteInvoice(id, carNum, date) {
@@ -295,7 +338,6 @@
             return;
         }
         try {
-            // سڕینەوە لە فایەربەیسی یەکەم (Update status)
             await db1.collection("Invoices").doc(date).collection("AllInvoices").doc(id).update({
                 status: 'deleted',
                 deleteReason: reason,
@@ -303,7 +345,6 @@
                 deletedAt: firebase.firestore.FieldValue.serverTimestamp()
             });
             
-            // سڕینەوەی یەکجاری لە فایەربەیسی دووەم (Delete document)
             await db2.collection("Invoices").doc(date).collection("AllInvoices").doc(id).delete();
 
             alert("سڕایەوە");
@@ -322,32 +363,6 @@
         await db1.collection("Employees").add({ name: n, password: p, role: r, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
         alert("تۆمارکرا");
         toggleModal(false);
-    }
-
-async function login() {
-        const user = document.getElementById('userInput').value.trim();
-        const pass = document.getElementById('passInput').value;
-
-        // لۆجیکی نوێ: پشکنین بۆ یوزەری جێگیر لەناو کۆد
-        if (user === "admin" && pass === "0055") {
-            currentUser = {
-                name: "Admin Main",
-                role: "admin"
-            };
-            startApp();
-            return; // لێرەدا دەوەستێت و ناچێت بۆ فایەربەیس
-        }
-
-        // ئەگەر یوزەری ناو کۆد نەبوو، دەچێت بۆ ناو فایەربەیس
-        const snap = await db1.collection("Employees").where("name", "==", user).where("password", "==", pass).get();
-
-        if (!snap.empty) {
-            currentUser = snap.docs[0].data();
-            if (currentUser.role === 'staff') return alert("تۆ دەسەڵاتی بینینی ئەم بەشەت نییە!");
-            startApp();
-        } else { 
-            alert("ناو یان پاسۆرد هەڵەیە!"); 
-        }
     }
     
     function loadUsersList() {
