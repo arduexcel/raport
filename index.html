@@ -27,9 +27,10 @@
         .btn-success { background: var(--success); }
         .btn-purple { background: var(--purple); }
 
-        .deleted-row { background-color: #f2f2f2 !important; color: #a0a0a0 !important; }
-        .deleted-row td { text-decoration: line-through; opacity: 0.7; }
+        .deleted-row { background-color: #fceaea !important; }
+        .deleted-row td { text-decoration: line-through; opacity: 0.6; color: #777; }
         .deleted-row .reason-cell { text-decoration: none !important; color: var(--danger); font-size: 13px; font-weight: bold; opacity: 1; }
+        .deleted-row .no-print { text-decoration: none !important; opacity: 1; }
 
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(5px); }
         .modal-content { background: white; padding: 30px; border-radius: 20px; width: 90%; max-width: 800px; max-height: 85vh; overflow-y: auto; position: relative; }
@@ -38,7 +39,6 @@
         th, td { border-bottom: 1px solid #eee; padding: 12px; text-align: center; }
         th { background: #f8f9fa; color: var(--dark); }
         
-        /* شێوازی نوێ بۆ تۆتاڵەکان لە سەرەوە */
         .top-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
         .stat-card { padding: 15px; border-radius: 12px; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         .stat-card.blue { background: var(--primary); }
@@ -87,11 +87,11 @@
 
     <div class="top-stats no-print">
         <div class="stat-card blue">
-            <span class="stat-label">کۆی وەسڵەکان (ئەمڕۆ)</span>
+            <span class="stat-label">کۆی وەسڵەکان (فلتەرکراو)</span>
             <span id="topTotalCount" class="stat-value">0</span>
         </div>
         <div class="stat-card dark">
-            <span class="stat-label">کۆی داهاتی ئەمڕۆ</span>
+            <span class="stat-label">کۆی داهاتی فلتەرکراو</span>
             <span id="topTotalMoney" class="stat-value">0 IQD</span>
         </div>
     </div>
@@ -160,6 +160,7 @@
             <button class="btn btn-danger" onclick="toggleModal(false)">X</button>
         </div>
         <div style="background: #f8f9fa; padding: 15px; border-radius: 10px; margin-bottom: 20px;">
+            <input type="hidden" id="editUserId">
             <input type="text" id="newUserName" placeholder="ناو">
             <input type="text" id="newUserPass" placeholder="پاسۆرد">
             <select id="newUserRole">
@@ -168,7 +169,7 @@
                 <option value="audit">وردبین (هەموو دەسەڵاتێک)</option>
                 <option value="admin">بەڕێوەبەر (هەموو دەسەڵاتێک)</option>
             </select>
-            <button class="btn btn-success" style="width:100%" onclick="createUser()">تۆمارکردن</button>
+            <button id="saveUserBtn" class="btn btn-success" style="width:100%" onclick="saveUser()">تۆمارکردن</button>
         </div>
         <table style="font-size: 14px;">
             <thead><tr><th>ناو</th><th>پاسۆرد</th><th>دەسەڵات</th><th>کردار</th></tr></thead>
@@ -204,14 +205,27 @@
 
     let currentUser = null;
 
-    // پشکنین بۆ هەبوونی یوزەر لە لۆکاڵ ستۆرێج لە کاتی کردنەوەی پەیج
     window.onload = function() {
         const savedUser = localStorage.getItem('terminalAdminUser');
-        if (savedUser) {
-            currentUser = JSON.parse(savedUser);
-            startApp();
+        if (savedUser && savedUser !== "null") {
+            try {
+                currentUser = JSON.parse(savedUser);
+                startApp();
+            } catch(e) {
+                localStorage.removeItem('terminalAdminUser');
+                showLogin();
+            }
+        } else {
+            showLogin();
         }
     };
+
+    function showLogin() {
+        document.getElementById('login-overlay').style.display = 'flex';
+        document.getElementById('mainApp').style.display = 'none';
+        document.getElementById('userInput').value = "";
+        document.getElementById('passInput').value = "";
+    }
 
     async function login() {
         const user = document.getElementById('userInput').value.trim();
@@ -224,36 +238,49 @@
             return;
         }
 
-        const snap = await db1.collection("Employees").where("name", "==", user).where("password", "==", pass).get();
-
-        if (!snap.empty) {
-            currentUser = snap.docs[0].data();
-            if (currentUser.role === 'staff') return alert("تۆ دەسەڵاتی بینینی ئەم بەشەت نییە!");
-            localStorage.setItem('terminalAdminUser', JSON.stringify(currentUser));
-            startApp();
-        } else { 
-            alert("ناو یان پاسۆرد هەڵەیە!"); 
+        try {
+            const snap = await db1.collection("Employees").where("name", "==", user).where("password", "==", pass).get();
+            if (!snap.empty) {
+                currentUser = snap.docs[0].data();
+                if (currentUser.role === 'staff') {
+                    alert("تۆ دەسەڵاتی بینینی ئەم بەشەت نییە!");
+                } else {
+                    localStorage.setItem('terminalAdminUser', JSON.stringify(currentUser));
+                    startApp();
+                }
+            } else { 
+                alert("ناو یان پاسۆرد هەڵەیە!"); 
+            }
+        } catch(e) {
+            alert("هەڵە لە پەیوەندی داتابەیس!");
         }
     }
 
-    function logout() {
-        localStorage.removeItem('terminalAdminUser');
-        currentUser = null;
-        document.getElementById('mainApp').style.display = 'none';
-        document.getElementById('login-overlay').style.display = 'flex';
-        document.getElementById('userInput').value = "";
-        document.getElementById('passInput').value = "";
-    }
+   function logout() {
+        if(confirm("دڵنیای لە دەرچوون؟")) {
+            // 1. سڕینەوەی داتاکان لە ناو بیرگەی براوسەر
+            localStorage.removeItem('terminalAdminUser');
+            
+            // 2. گۆڕینی بارودۆخی بەکارهێنەری ئێستا بۆ هیچ
+            currentUser = null;
 
+            // 3. نیشاندانی لاپەڕەی لۆگین و شاردنەوەی ئەپەکە
+            document.getElementById('login-overlay').style.display = 'flex';
+            document.getElementById('mainApp').style.display = 'none';
+            
+            // 4. پاککردنەوەی خانەکانی ناو و پاسۆرد
+            document.getElementById('userInput').value = "";
+            document.getElementById('passInput').value = "";
+
+            // 5. ڕیفرێشکردنی لاپەڕەکە بۆ دڵنیایی تەواو
+            window.location.reload();
+        }
+    }
     function startApp() {
         document.getElementById('login-overlay').style.display = 'none';
         document.getElementById('mainApp').style.display = 'block';
         
-        let displayRole = "";
-        if(currentUser.role === 'admin') displayRole = "بەڕێوەبەر";
-        else if(currentUser.role === 'audit') displayRole = "وردبین";
-        else displayRole = "ژمێریار";
-
+        let displayRole = currentUser.role === 'admin' ? "بەڕێوەبەر" : (currentUser.role === 'audit' ? "وردبین" : "ژمێریار");
         document.getElementById('userStatus').innerText = `بەخێرهاتی: ${currentUser.name} (${displayRole})`;
         document.getElementById('reportDate').valueAsDate = new Date();
 
@@ -261,17 +288,22 @@
             document.getElementById('adminOnlyBtn').style.display = 'inline-flex';
             document.getElementById('addCarBtn').style.display = 'inline-flex';
             loadUsersList();
+        } else {
+            document.getElementById('adminOnlyBtn').style.display = 'none';
+            document.getElementById('addCarBtn').style.display = 'none';
         }
 
-        const empSelect = document.getElementById('empFilter');
-        empSelect.innerHTML = '<option value="">هەموو کارمەندەکان</option>';
-        db1.collection("Employees").where("role", "==", "staff").get().then(snap => {
-            snap.forEach(doc => {
-                empSelect.innerHTML += `<option value="${doc.data().name}">${doc.data().name}</option>`;
-            });
-        });
-
+        loadEmployees();
         fetchInvoices();
+    }
+
+    async function loadEmployees() {
+        const empSelect = document.getElementById('empFilter');
+        const snap = await db1.collection("Employees").where("role", "==", "staff").get();
+        empSelect.innerHTML = '<option value="">هەموو کارمەندەکان</option>';
+        snap.forEach(doc => {
+            empSelect.innerHTML += `<option value="${doc.data().name}">${doc.data().name}</option>`;
+        });
     }
 
     async function fetchInvoices() {
@@ -279,7 +311,9 @@
         const lineVal = document.getElementById('lineFilter').value;
         const empVal = document.getElementById('empFilter').value;
         
-        const snap = await db1.collection("Invoices").doc(date).collection("AllInvoices").orderBy("invoiceNo", "desc").get();
+        if (!date) return;
+
+        const snap = await db1.collection("Invoices").doc(date).collection("AllInvoices").orderBy("invoiceNo", "asc").get();
         
         const tbody = document.getElementById('invoiceBody');
         tbody.innerHTML = "";
@@ -287,25 +321,27 @@
 
         snap.forEach(doc => {
             const inv = doc.data();
-            const matchLine = (lineVal === "" || inv.line === lineVal);
-            const matchEmp = (empVal === "" || inv.employee === empVal);
-            
-            if (matchLine && matchEmp) {
+            const invId = doc.id;
+            if ((lineVal === "" || inv.line === lineVal) && (empVal === "" || inv.employee === empVal)) {
                 const isDeleted = (inv.status === 'deleted' || inv.status === 'canceled');
                 if (!isDeleted) {
                     count++;
                     totalMoney += parseInt(inv.price) || 0;
                 }
 
-                let deleteReasonText = inv.deleteReason || "";
                 let rowClass = isDeleted ? "deleted-row" : "";
-                let carType = inv.type || "نادیار";
-                
                 let actionBtn = "";
-                if ((currentUser.role === 'admin' || currentUser.role === 'audit') && !isDeleted) {
-                    actionBtn = `<button class="btn btn-danger no-print" style="padding:5px 10px; font-size:12px;" onclick="softDeleteInvoice('${doc.id}', '${inv.carNumber}', '${date}')">سڕینەوە</button>`;
-                } else if (isDeleted) {
-                    actionBtn = `<span style="font-size:12px; color:gray;">سڕاوەتەوە</span>`;
+                
+                if (isDeleted) {
+                    if (currentUser.role === 'admin' || currentUser.role === 'audit') {
+                        actionBtn = `<button class="btn btn-success no-print" style="padding:5px 10px; font-size:12px;" onclick="restoreInvoice('${invId}', '${date}')">گەڕاندنەوە</button>`;
+                    } else {
+                        actionBtn = `<span style="font-size:12px; color:gray;">سڕاوەتەوە</span>`;
+                    }
+                } else {
+                    if (currentUser.role === 'admin' || currentUser.role === 'audit') {
+                        actionBtn = `<button class="btn btn-danger no-print" style="padding:5px 10px; font-size:12px;" onclick="softDeleteInvoice('${invId}', '${inv.carNumber}', '${date}')">سڕینەوە</button>`;
+                    }
                 }
 
                 tbody.innerHTML += `<tr class="${rowClass}">
@@ -313,16 +349,15 @@
                     <td>${inv.date ? (inv.date.includes(' ') ? inv.date.split(' ')[1] : inv.date) : '---'}</td>
                     <td>${inv.employee}</td>
                     <td><b>${inv.carNumber}</b></td>
-                    <td>${carType}</td>
+                    <td>${inv.type || "نادیار"}</td>
                     <td>${inv.line}</td>
                     <td>${parseInt(inv.price).toLocaleString()} IQD</td>
-                    <td class="reason-cell">${deleteReasonText}</td>
+                    <td class="reason-cell">${inv.deleteReason || ""}</td>
                     <td class="no-print">${actionBtn}</td>
                 </tr>`;
             }
         });
         
-        // نوێکردنەوەی هەموو تۆتاڵەکان
         document.getElementById('totalCount').innerText = count;
         document.getElementById('totalMoney').innerText = totalMoney.toLocaleString() + " IQD";
         document.getElementById('topTotalCount').innerText = count;
@@ -330,13 +365,9 @@
     }
 
     async function softDeleteInvoice(id, carNum, date) {
-        if(currentUser.role !== 'admin' && currentUser.role !== 'audit') return;
-        const reason = prompt(`هۆکاری سڕینەوەی وەسڵی سەیارەی (${carNum}) بنووسە:`);
-        if (reason === null) return;
-        if (reason.trim() === "") {
-            alert("پێویستە هۆکاری سڕینەوە بنووسیت!");
-            return;
-        }
+        const reason = prompt(`هۆکاری سڕینەوەی وەسڵی (${carNum}) بنووسە:`);
+        if (!reason) return;
+
         try {
             await db1.collection("Invoices").doc(date).collection("AllInvoices").doc(id).update({
                 status: 'deleted',
@@ -344,51 +375,110 @@
                 deletedBy: currentUser.name,
                 deletedAt: firebase.firestore.FieldValue.serverTimestamp()
             });
-            
             await db2.collection("Invoices").doc(date).collection("AllInvoices").doc(id).delete();
-
-            alert("سڕایەوە");
             fetchInvoices();
-        } catch (error) { alert("هەڵەیەک ڕوویدا: " + error.message); }
+        } catch (e) { alert("هەڵە لە سڕینەوە"); }
     }
 
-    function toggleModal(s) { document.getElementById('userModal').style.display = s ? 'flex' : 'none'; }
+    async function restoreInvoice(id, date) {
+        if(!confirm("دڵنیای لە گەڕاندنەوەی ئەم وەسڵە؟")) return;
 
-    async function createUser() {
-        if(currentUser.role !== 'admin' && currentUser.role !== 'audit') return alert("دەسەڵاتت نییە");
+        try {
+            const docRef = db1.collection("Invoices").doc(date).collection("AllInvoices").doc(id);
+            const docSnap = await docRef.get();
+            const invData = docSnap.data();
+
+            await docRef.update({
+                status: 'active',
+                deleteReason: firebase.firestore.FieldValue.delete(),
+                deletedBy: firebase.firestore.FieldValue.delete(),
+                deletedAt: firebase.firestore.FieldValue.delete()
+            });
+
+            const cleanData = {...invData};
+            cleanData.status = 'active';
+            delete cleanData.deleteReason;
+            delete cleanData.deletedBy;
+            delete cleanData.deletedAt;
+
+            await db2.collection("Invoices").doc(date).collection("AllInvoices").doc(id).set(cleanData);
+            alert("گەڕایەوە");
+            fetchInvoices();
+        } catch (e) { alert("هەڵە لە گەڕاندنەوە"); }
+    }
+
+    function toggleModal(s) { 
+        document.getElementById('userModal').style.display = s ? 'flex' : 'none'; 
+        if(!s) clearUserForm();
+    }
+
+    function clearUserForm() {
+        document.getElementById('editUserId').value = "";
+        document.getElementById('newUserName').value = "";
+        document.getElementById('newUserPass').value = "";
+        document.getElementById('newUserRole').value = "staff";
+        document.getElementById('saveUserBtn').innerText = "تۆمارکردن";
+        document.getElementById('saveUserBtn').className = "btn btn-success";
+    }
+
+    async function saveUser() {
+        const id = document.getElementById('editUserId').value;
         const n = document.getElementById('newUserName').value.trim();
         const p = document.getElementById('newUserPass').value.trim();
         const r = document.getElementById('newUserRole').value;
-        if(!n || !p) return alert("خانەکان پڕ بکەرەوە");
-        await db1.collection("Employees").add({ name: n, password: p, role: r, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
-        alert("تۆمارکرا");
-        toggleModal(false);
+
+        if(!n || !p) return alert("تکایە خانەکان پڕ بکەرەوە");
+
+        const userData = { name: n, password: p, role: r };
+
+        try {
+            if(id) {
+                await db1.collection("Employees").doc(id).update(userData);
+                alert("بە سەرکەوتوویی نوێکرایەوە");
+            } else {
+                userData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+                await db1.collection("Employees").add(userData);
+                alert("بە سەرکەوتوویی تۆمارکرا");
+            }
+            clearUserForm();
+            loadEmployees();
+        } catch (e) { alert("هەڵەیەک ڕوویدا!"); }
+    }
+
+    function editUser(id, name, pass, role) {
+        document.getElementById('editUserId').value = id;
+        document.getElementById('newUserName').value = name;
+        document.getElementById('newUserPass').value = pass;
+        document.getElementById('newUserRole').value = role;
+        document.getElementById('saveUserBtn').innerText = "نوێکردنەوە";
+        document.getElementById('saveUserBtn').className = "btn btn-primary";
     }
     
     function loadUsersList() {
-        db1.collection("Employees").orderBy("createdAt", "desc").onSnapshot(snap => {
+        db1.collection("Employees").orderBy("role").onSnapshot(snap => {
             const tbody = document.getElementById('userTableBody');
             tbody.innerHTML = "";
             snap.forEach(doc => {
                 const u = doc.data();
-                let rClass = "badge-staff";
-                if(u.role === 'admin') rClass = "badge-admin";
-                if(u.role === 'audit') rClass = "badge-audit";
-                if(u.role === 'accounts') rClass = "badge-acc";
-
+                const uid = doc.id;
+                let rClass = u.role === 'admin' ? "badge-admin" : (u.role === 'audit' ? "badge-audit" : (u.role === 'accounts' ? "badge-acc" : "badge-staff"));
                 tbody.innerHTML += `<tr>
-                    <td>${u.name}</td>
-                    <td>${u.password}</td>
+                    <td>${u.name}</td><td>${u.password}</td>
                     <td><span class="badge ${rClass}">${u.role}</span></td>
-                    <td><button onclick="deleteUser('${doc.id}')" style="color:red;border:none;background:none;cursor:pointer;">سڕینەوە</button></td>
+                    <td>
+                        <button onclick="editUser('${uid}', '${u.name}', '${u.password}', '${u.role}')" style="color:blue;border:none;background:none;cursor:pointer;margin-left:10px;">دەستکاری</button>
+                        <button onclick="deleteUser('${uid}')" style="color:red;border:none;background:none;cursor:pointer;">سڕینەوە</button>
+                    </td>
                 </tr>`;
             });
         });
     }
 
     async function deleteUser(id) {
-        if(currentUser.role !== 'admin' && currentUser.role !== 'audit') return;
-        if(confirm("دڵنیای؟")) await db1.collection("Employees").doc(id).delete();
+        if(confirm("دڵنیای لە سڕینەوە؟")) {
+            await db1.collection("Employees").doc(id).delete();
+            loadEmployees();
+        }
     }
 </script>
 </body>
