@@ -80,6 +80,7 @@
         <div class="no-print">
             <button id="addCarBtn" class="btn btn-purple" style="display:none;" onclick="window.open('https://arduexcel.github.io/data-iin/', '_blank')">🚗 ئۆتۆمبێلی نوێ</button>
             <button id="adminOnlyBtn" class="btn btn-dark" style="display:none;" onclick="toggleModal(true)">👥 کارمەندان</button>
+            <button class="btn btn-primary" onclick="downloadExcel()">📥 دابەزاندنی ئێکسڵ</button>
             <button class="btn btn-success" onclick="window.print()">🖨️ پڕینت</button>
             <button class="btn btn-danger" onclick="logout()">🚪 دەرچوون</button>
         </div>
@@ -127,7 +128,7 @@
     <table>
         <thead>
             <tr>
-                <th>ڕیزبەندی</th>
+                <th>ژ.وەسڵ</th>
                 <th>کات</th>
                 <th>کارمەند</th>
                 <th>ژمارەی ئۆتۆمبێل</th>
@@ -204,6 +205,7 @@
     const db2 = app2.firestore();
 
     let currentUser = null;
+    let currentInvoices = [];
 
     window.onload = function() {
         const savedUser = localStorage.getItem('terminalAdminUser');
@@ -305,20 +307,39 @@
         
         if (!date) return;
 
-        const snap = await db1.collection("Invoices").doc(date).collection("AllInvoices").orderBy("invoiceNo", "asc").get();
+        // یەکەم جار هەموو داتاکان دەهێنین
+        const snap = await db1.collection("Invoices").doc(date).collection("AllInvoices").get();
         
         const tbody = document.getElementById('invoiceBody');
         tbody.innerHTML = "";
-        let totalMoney = 0; 
-        let count = 0;
-        let displayIndex = 1; // ڕیزبەندی لێرەوە دەستپێدەکات
+        let totalMoney = 0; let count = 0;
+        let allItems = [];
 
         snap.forEach(doc => {
-            const inv = doc.data();
-            const invId = doc.id;
+            const data = doc.data();
+            data.id = doc.id;
+            allItems.push(data);
+        });
+
+        // لێرە ڕیزبەندییەکە ڕاست دەکەینەوە بۆ ئەوەی 50 و 100 تێکەڵ نەبن (ڕیزکردنی ژمارەیی)
+        allItems.sort((a, b) => {
+            return (parseInt(a.invoiceNo) || 0) - (parseInt(b.invoiceNo) || 0);
+        });
+
+        currentInvoices = [];
+
+        allItems.forEach(inv => {
+            const invId = inv.id;
             if ((lineVal === "" || inv.line === lineVal) && (empVal === "" || inv.employee === empVal)) {
-                const isDeleted = (inv.status === 'deleted' || inv.status === 'canceled');
                 
+                currentInvoices.push(inv);
+
+                const isDeleted = (inv.status === 'deleted' || inv.status === 'canceled');
+                if (!isDeleted) {
+                    count++;
+                    totalMoney += parseInt(inv.price) || 0;
+                }
+
                 let rowClass = isDeleted ? "deleted-row" : "";
                 let actionBtn = "";
                 
@@ -329,16 +350,13 @@
                         actionBtn = `<span style="font-size:12px; color:gray;">سڕاوەتەوە</span>`;
                     }
                 } else {
-                    count++;
-                    totalMoney += parseInt(inv.price) || 0;
                     if (currentUser.role === 'admin' || currentUser.role === 'audit') {
                         actionBtn = `<button class="btn btn-danger no-print" style="padding:5px 10px; font-size:12px;" onclick="softDeleteInvoice('${invId}', '${inv.carNumber}', '${date}')">سڕینەوە</button>`;
                     }
                 }
 
-                // لێرەدا displayIndex بەکارهاتووە بۆ نیشاندانی ڕیزبەندی
                 tbody.innerHTML += `<tr class="${rowClass}">
-                    <td>${displayIndex++}</td>
+                    <td>${inv.invoiceNo || '---'}</td>
                     <td>${inv.date ? (inv.date.includes(' ') ? inv.date.split(' ')[1] : inv.date) : '---'}</td>
                     <td>${inv.employee}</td>
                     <td><b>${inv.carNumber}</b></td>
@@ -355,6 +373,39 @@
         document.getElementById('totalMoney').innerText = totalMoney.toLocaleString() + " IQD";
         document.getElementById('topTotalCount').innerText = count;
         document.getElementById('topTotalMoney').innerText = totalMoney.toLocaleString() + " IQD";
+    }
+
+    function downloadExcel() {
+        if (currentInvoices.length === 0) {
+            alert("هیچ داتایەک نییە بۆ دابەزاندن!");
+            return;
+        }
+        let csvContent = "\uFEFF"; 
+        csvContent += "ژ.وەسڵ,کات,کارمەند,ژمارەی ئۆتۆمبێل,جۆری ئۆتۆمبێل,هێڵ,نرخ,تێبینی,دۆخ\n";
+        currentInvoices.forEach(inv => {
+            let row = [
+                inv.invoiceNo || "",
+                inv.date || "",
+                inv.employee || "",
+                inv.carNumber || "",
+                inv.type || "",
+                inv.line || "",
+                inv.price || 0,
+                (inv.note || "").replace(/,/g, " "),
+                inv.status || "active"
+            ].join(",");
+            csvContent += row + "\n";
+        });
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        const date = document.getElementById('reportDate').value;
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", `Report_${date}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     }
 
     async function softDeleteInvoice(id, carNum, date) {
