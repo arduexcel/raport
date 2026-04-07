@@ -1,363 +1,849 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ku" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>سیستەمی کارگێڕی و وردبینی</title>
-     <link rel="icon" type="image/png" href="https://arduexcel.github.io/img/arduecel.ico">
-    
+    <link
+      rel="icon"
+      type="image/png"
+      href="https://arduexcel.github.io/img/arduecel.ico"
+    />
+
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
     <style>
-        :root { --primary: #2980b9; --danger: #e74c3c; --dark: #2c3e50; --success: #27ae60; --purple: #8e44ad; --audit: #16a085; }
-        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #f0f3f5; margin: 0; padding: 20px; direction: rtl; }
-        
-        #login-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--dark); display: flex; justify-content: center; align-items: center; z-index: 9999; }
-        .login-box { background: white; padding: 35px; border-radius: 15px; width: 320px; text-align: center; box-shadow: 0 15px 35px rgba(0,0,0,0.5); }
-        
-        .admin-container { max-width: 1200px; margin: 0 auto; background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); display: none; }
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; border-bottom: 2px solid #eee; padding-bottom: 15px; }
-        
-        input, select { padding: 12px; border: 2px solid #eee; border-radius: 10px; width: 100%; box-sizing: border-box; font-size: 15px; margin-bottom: 10px; outline: none; }
-        
-        .btn { padding: 12px 20px; border-radius: 10px; border: none; cursor: pointer; font-weight: bold; color: white; transition: 0.3s; display: inline-flex; align-items: center; gap: 8px; }
-        .btn-primary { background: var(--primary); }
-        .btn-dark { background: var(--dark); }
-        .btn-danger { background: var(--danger); }
-        .btn-success { background: var(--success); }
-        .btn-purple { background: var(--purple); }
+      :root {
+        --primary: #2980b9;
+        --danger: #e74c3c;
+        --dark: #2c3e50;
+        --success: #27ae60;
+        --purple: #8e44ad;
+        --audit: #16a085;
+      }
+      body {
+        font-family: "Segoe UI", Tahoma, sans-serif;
+        background: #f0f3f5;
+        margin: 0;
+        padding: 20px;
+        direction: rtl;
+      }
 
-        .deleted-row { background-color: #fceaea !important; }
-        .deleted-row td { text-decoration: line-through; opacity: 0.6; color: #777; }
-        .deleted-row .reason-cell { text-decoration: none !important; color: var(--danger); font-size: 13px; font-weight: bold; opacity: 1; }
-        .deleted-row .no-print { text-decoration: none !important; opacity: 1; }
+      #login-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: var(--dark);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+      }
+      .login-box {
+        background: white;
+        padding: 35px;
+        border-radius: 15px;
+        width: 320px;
+        text-align: center;
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+      }
 
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(5px); }
-        .modal-content { background: white; padding: 30px; border-radius: 20px; width: 90%; max-width: 800px; max-height: 85vh; overflow-y: auto; position: relative; }
-        
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 14px; }
-        th, td { border-bottom: 1px solid #eee; padding: 12px; text-align: center; }
-        th { background: #f8f9fa; color: var(--dark); }
-        
-        .top-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
-        .stat-card { padding: 15px; border-radius: 12px; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .stat-card.blue { background: var(--primary); }
-        .stat-card.dark { background: var(--dark); }
-        .stat-label { font-size: 14px; opacity: 0.9; margin-bottom: 5px; }
-        .stat-value { font-size: 22px; font-weight: bold; }
+      .admin-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        background: white;
+        padding: 25px;
+        border-radius: 15px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        display: none;
+      }
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 25px;
+        border-bottom: 2px solid #eee;
+        padding-bottom: 15px;
+      }
 
-        .summary-container { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 25px; }
-        .stat-box { padding: 20px; border-radius: 12px; color: white; text-align: center; }
-        .stat-total { background: var(--dark); }
-        .stat-count { background: var(--primary); }
+      input,
+      select {
+        padding: 12px;
+        border: 2px solid #eee;
+        border-radius: 10px;
+        width: 100%;
+        box-sizing: border-box;
+        font-size: 15px;
+        margin-bottom: 10px;
+        outline: none;
+      }
 
-        .badge { padding: 4px 8px; border-radius: 4px; color: white; font-size: 12px; font-weight: bold; }
-        .badge-admin { background: var(--purple); }
-        .badge-audit { background: var(--audit); }
-        .badge-acc { background: #f39c12; }
-        .badge-staff { background: var(--success); }
+      .btn {
+        padding: 12px 20px;
+        border-radius: 10px;
+        border: none;
+        cursor: pointer;
+        font-weight: bold;
+        color: white;
+        transition: 0.3s;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .btn-primary {
+        background: var(--primary);
+      }
+      .btn-dark {
+        background: var(--dark);
+      }
+      .btn-danger {
+        background: var(--danger);
+      }
+      .btn-success {
+        background: var(--success);
+      }
+      .btn-purple {
+        background: var(--purple);
+      }
 
-        @media print { .no-print { display: none !important; } .admin-container { box-shadow: none; width: 100%; padding: 0; } }
+      .deleted-row {
+        background-color: #fceaea !important;
+      }
+      .deleted-row td {
+        text-decoration: line-through;
+        opacity: 0.6;
+        color: #777;
+      }
+      .deleted-row .reason-cell {
+        text-decoration: none !important;
+        color: var(--danger);
+        font-size: 13px;
+        font-weight: bold;
+        opacity: 1;
+      }
+      .deleted-row .no-print {
+        text-decoration: none !important;
+        opacity: 1;
+      }
+
+      .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        z-index: 1000;
+        justify-content: center;
+        align-items: center;
+        backdrop-filter: blur(5px);
+      }
+      .modal-content {
+        background: white;
+        padding: 30px;
+        border-radius: 20px;
+        width: 90%;
+        max-width: 800px;
+        max-height: 85vh;
+        overflow-y: auto;
+        position: relative;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+        font-size: 14px;
+      }
+      th,
+      td {
+        border-bottom: 1px solid #eee;
+        padding: 12px;
+        text-align: center;
+      }
+      th {
+        background: #f8f9fa;
+        color: var(--dark);
+      }
+
+      .top-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin-bottom: 20px;
+      }
+      .stat-card {
+        padding: 15px;
+        border-radius: 12px;
+        color: white;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+      .stat-card.blue {
+        background: var(--primary);
+      }
+      .stat-card.dark {
+        background: var(--dark);
+      }
+      .stat-label {
+        font-size: 14px;
+        opacity: 0.9;
+        margin-bottom: 5px;
+      }
+      .stat-value {
+        font-size: 22px;
+        font-weight: bold;
+      }
+
+      .summary-container {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+        margin-top: 25px;
+      }
+      .stat-box {
+        padding: 20px;
+        border-radius: 12px;
+        color: white;
+        text-align: center;
+      }
+      .stat-total {
+        background: var(--dark);
+      }
+      .stat-count {
+        background: var(--primary);
+      }
+
+      .badge {
+        padding: 4px 8px;
+        border-radius: 4px;
+        color: white;
+        font-size: 12px;
+        font-weight: bold;
+      }
+      .badge-admin {
+        background: var(--purple);
+      }
+      .badge-audit {
+        background: var(--audit);
+      }
+      .badge-acc {
+        background: #f39c12;
+      }
+      .badge-staff {
+        background: var(--success);
+      }
+
+      @media print {
+        .no-print {
+          display: none !important;
+        }
+        .admin-container {
+          box-shadow: none;
+          width: 100%;
+          padding: 0;
+        }
+        body > * {
+          display: none !important;
+        }
+        .is-printing {
+          display: block !important;
+          direction: rtl;
+          font-family: "Segoe UI", Tahoma, sans-serif;
+        }
+        .is-printing .print-logo {
+          display: block !important;
+        }
+        #monthly-print-area table {
+          width: 100%;
+          border-collapse: collapse;
+          font-size: 14px;
+          margin-top: 20px;
+        }
+        #monthly-print-area th,
+        #monthly-print-area td {
+          border: 1px solid #ccc;
+          padding: 10px;
+          text-align: center;
+        }
+        #monthly-print-area th {
+          background: #2c3e50;
+          color: white;
+        }
+        #monthly-print-area .print-total {
+          margin-top: 20px;
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 15px;
+        }
+        #monthly-print-area .print-total-box {
+          padding: 14px;
+          border: 2px solid #2c3e50;
+          border-radius: 10px;
+          text-align: center;
+          font-weight: bold;
+          font-size: 16px;
+        }
+      }
+
+      #daily-print-area {
+        display: none;
+      }
+      #daily-print-area .print-logo {
+        display: block;
+        text-align: center;
+        margin-bottom: 15px;
+      }
+      #daily-print-area .print-logo img,
+      #monthly-print-area .print-logo img {
+        width: 250px;
+        height: 250px;
+        object-fit: contain;
+        display: block;
+        margin: 0 auto;
+      }
+      #daily-print-area .print-logo,
+      #monthly-print-area .print-logo {
+        text-align: center;
+        margin-bottom: 15px;
+      }
+      #daily-print-area .print-title,
+      #monthly-print-area .print-title {
+        text-align: center;
+        font-size: 28px;
+        font-weight: bold;
+        color: #2c3e50;
+        margin-bottom: 5px;
+      }
+      #daily-print-area .print-date {
+        text-align: center;
+        color: #555;
+        margin-bottom: 20px;
+        font-size: 14px;
+      }
+      #daily-print-area table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+      }
+      #daily-print-area th,
+      #daily-print-area td {
+        border: 1px solid #ccc;
+        padding: 10px;
+        text-align: center;
+      }
+      #daily-print-area th {
+        background: #2c3e50;
+        color: white;
+      }
+      #daily-print-area .print-total {
+        margin-top: 20px;
+        background: #2c3e50;
+        color: white;
+        padding: 14px;
+        border-radius: 10px;
+        text-align: center;
+        font-size: 18px;
+        font-weight: bold;
+      }
     </style>
-</head>
-<body>
-
-<div id="login-overlay">
-    <div class="login-box">
-        <h2 style="color: var(--dark);">چوونەژوورەوە</h2>
-        <input type="text" id="userInput" placeholder="ناوی بەکارهێنەر">
-        <input type="password" id="passInput" placeholder="وشەی تێپەڕ">
-        <button class="btn btn-primary" style="width: 100%; justify-content: center;" onclick="login()">چوونەژوورەوە</button>
+  </head>
+  <body>
+    <div id="login-overlay">
+      <div class="login-box">
+        <h2 style="color: var(--dark)">چوونەژوورەوە</h2>
+        <input type="text" id="userInput" placeholder="ناوی بەکارهێنەر" />
+        <input type="password" id="passInput" placeholder="وشەی تێپەڕ" />
+        <button
+          class="btn btn-primary"
+          style="width: 100%; justify-content: center"
+          onclick="login()"
+        >
+          چوونەژوورەوە
+        </button>
+      </div>
     </div>
-</div>
 
-<div class="admin-container" id="mainApp">
-    <div class="header">
+    <div class="admin-container" id="mainApp">
+      <div class="header">
         <div>
-            <h2 style="margin:0; color: var(--dark);">سیستەمی ڕاپۆرت و وردبینی</h2>
-            <div id="userStatus" style="color: var(--primary); font-weight: bold; margin-top: 5px;"></div>
+          <h2 style="margin: 0; color: var(--dark)">
+            سیستەمی ڕاپۆرت و وردبینی
+          </h2>
+          <div
+            id="userStatus"
+            style="color: var(--primary); font-weight: bold; margin-top: 5px"
+          ></div>
         </div>
         <div class="no-print">
-            <button id="addCarBtn" class="btn btn-purple" style="display:none;" onclick="window.open('https://arduexcel.github.io/data-iin/', '_blank')">🚗 ئۆتۆمبێلی نوێ</button>
-            <button id="adminOnlyBtn" class="btn btn-dark" style="display:none;" onclick="toggleModal(true)">👥 کارمەندان</button>
-            <button class="btn btn-primary" onclick="downloadExcel()">📥 دابەزاندنی ئێکسڵ</button>
-            <button class="btn btn-success" onclick="window.print()">🖨️ پڕینت</button>
-            <button class="btn btn-danger" onclick="logout()">🚪 دەرچوون</button>
+          <button
+            id="addCarBtn"
+            class="btn btn-purple"
+            style="display: none"
+            onclick="
+              window.open('https://arduexcel.github.io/data-iin/', '_blank')
+            "
+          >
+            🚗 ئۆتۆمبێلی نوێ
+          </button>
+          <button
+            id="adminOnlyBtn"
+            class="btn btn-dark"
+            style="display: none"
+            onclick="toggleModal(true)"
+          >
+            👥 کارمەندان
+          </button>
+          <button class="btn btn-primary" onclick="downloadExcel()">
+            📥 دابەزاندنی ئێکسڵ
+          </button>
+          <button class="btn btn-success" onclick="window.print()">
+            🖨️ پڕینت
+          </button>
+          <button class="btn" style="background:#e67e22;" onclick="showDailyReport()">
+            📊 ڕاپۆرتی ڕۆژانە
+          </button>
+          <button class="btn" style="background:#16a085;" onclick="showMonthlyReport()">
+            📅 ڕاپۆرتی مانگانە
+          </button>
+          <button class="btn btn-danger" onclick="logout()">🚪 دەرچوون</button>
         </div>
-    </div>
+      </div>
 
-    <div class="top-stats no-print">
+      <div class="top-stats no-print">
         <div class="stat-card blue">
-            <span class="stat-label">کۆی وەسڵەکان (فلتەرکراو)</span>
-            <span id="topTotalCount" class="stat-value">0</span>
+          <span class="stat-label">کۆی وەسڵەکان (فلتەرکراو)</span>
+          <span id="topTotalCount" class="stat-value">0</span>
         </div>
         <div class="stat-card dark">
-            <span class="stat-label">کۆی داهاتی فلتەرکراو</span>
-            <span id="topTotalMoney" class="stat-value">0 IQD</span>
+          <span class="stat-label">کۆی داهاتی فلتەرکراو</span>
+          <span id="topTotalMoney" class="stat-value">0 IQD</span>
         </div>
-    </div>
+      </div>
 
-    <div class="no-print" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; background: #f9f9f9; padding: 20px; border-radius: 12px; margin-bottom: 25px;">
+      <div
+        class="no-print"
+        style="
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+          gap: 15px;
+          background: #f9f9f9;
+          padding: 20px;
+          border-radius: 12px;
+          margin-bottom: 25px;
+        "
+      >
         <div>
-            <label style="font-weight: bold;">بەروار:</label>
-            <input type="date" id="reportDate" onchange="fetchInvoices()">
+          <label style="font-weight: bold">بەروار:</label>
+          <input type="date" id="reportDate" onchange="fetchInvoices()" />
         </div>
         <div>
-            <label style="font-weight: bold;">هێڵ:</label>
-            <select id="lineFilter" onchange="fetchInvoices()">
-                <option value="">هەموو هێڵەکان</option>
-                <option value="هەولێر">هەولێر</option>
-                <option value="کەرکوک">کەرکوک</option>
-                <option value="ڕانیە">ڕانیە</option>
-                <option value="قەڵادزێ">قەڵادزێ</option>
-                <option value="بغداد">بغداد</option>
-                <option value="چەمچەماڵ">چەمچەماڵ</option>
-                <option value="دووز">دووز</option>
-                <option value="کۆیە">کۆیە</option>
-                <option value="پارکینگ">پارکینگ</option>
-            </select>
+          <label style="font-weight: bold">هێڵ:</label>
+          <select id="lineFilter" onchange="fetchInvoices()">
+            <option value="">هەموو هێڵەکان</option>
+            <option value="هەولێر">هەولێر</option>
+            <option value="کەرکوک">کەرکوک</option>
+            <option value="ڕانیە">ڕانیە</option>
+            <option value="قەڵادزێ">قەڵادزێ</option>
+            <option value="بغداد">بغداد</option>
+            <option value="چەمچەماڵ">چەمچەماڵ</option>
+            <option value="دووز">دووز</option>
+            <option value="کۆیە">کۆیە</option>
+            <option value="پارکینگ">پارکینگ</option>
+          </select>
         </div>
         <div>
-            <label style="font-weight: bold;">کارمەند:</label>
-            <select id="empFilter" onchange="fetchInvoices()">
-                <option value="">هەموو کارمەندەکان</option>
-            </select>
+          <label style="font-weight: bold">کارمەند:</label>
+          <select id="empFilter" onchange="fetchInvoices()">
+            <option value="">هەموو کارمەندەکان</option>
+          </select>
         </div>
-    </div>
+      </div>
 
-    <table>
+      <table>
         <thead>
-            <tr>
-                <th>ژ.وەسڵ</th>
-                <th>کات</th>
-                <th>کارمەند</th>
-                <th>ژمارەی ئۆتۆمبێل</th>
-                <th>جۆری ئۆتۆمبێل</th>
-                <th>هێڵ</th>
-                <th>نرخ (دینار)</th>
-                <th>تێبینی وەسڵ</th> <th>تێبینی سڕینەوە</th>
-                <th class="no-print">کردار</th>
-            </tr>
+          <tr>
+            <th>ژ.وەسڵ</th>
+            <th>کات</th>
+            <th>کارمەند</th>
+            <th>ژمارەی ئۆتۆمبێل</th>
+            <th>جۆری ئۆتۆمبێل</th>
+            <th>هێڵ</th>
+            <th>نرخ (دینار)</th>
+            <th>تێبینی وەسڵ</th>
+            <th>تێبینی سڕینەوە</th>
+            <th class="no-print">کردار</th>
+          </tr>
         </thead>
         <tbody id="invoiceBody"></tbody>
-    </table>
+      </table>
 
-    <div class="summary-container">
+      <div class="summary-container">
         <div class="stat-box stat-count">
-            <div style="font-size: 14px; opacity: 0.9;">کۆی وەسڵەکان (چالاک)</div>
-            <div id="totalCount" style="font-size: 24px; font-weight: bold;">0</div>
+          <div style="font-size: 14px; opacity: 0.9">کۆی وەسڵەکان (چالاک)</div>
+          <div id="totalCount" style="font-size: 24px; font-weight: bold">
+            0
+          </div>
         </div>
         <div class="stat-box stat-total">
-            <div style="font-size: 14px; opacity: 0.9;">کۆی داهاتی چالاک</div>
-            <div id="totalMoney" style="font-size: 24px; font-weight: bold;">0 IQD</div>
+          <div style="font-size: 14px; opacity: 0.9">کۆی داهاتی چالاک</div>
+          <div id="totalMoney" style="font-size: 24px; font-weight: bold">
+            0 IQD
+          </div>
         </div>
+      </div>
     </div>
-</div>
 
-<div id="userModal" class="modal">
-    <div class="modal-content">
-        <div style="display:flex; justify-content:space-between; align-items: center; margin-bottom: 20px;">
-            <h3>بەڕێوەبردنی بەکارهێنەران</h3>
-            <button class="btn btn-danger" onclick="toggleModal(false)">X</button>
+    <div id="userModal" class="modal">
+      <div class="modal-content">
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+          "
+        >
+          <h3>بەڕێوەبردنی بەکارهێنەران</h3>
+          <button class="btn btn-danger" onclick="toggleModal(false)">X</button>
         </div>
-        <div style="background: #f8f9fa; padding: 15px; border-radius: 10px; margin-bottom: 20px;">
-            <input type="hidden" id="editUserId">
-            <input type="text" id="newUserName" placeholder="ناو">
-            <input type="text" id="newUserPass" placeholder="پاسۆرد">
-            <select id="newUserRole">
-                <option value="staff">کارمەندی وەسڵ بڕ</option>
-                <option value="accounts">ژمێریار (بینین)</option>
-                <option value="audit">وردبین (هەموو دەسەڵاتێک)</option>
-                <option value="admin">بەڕێوەبەر (هەموو دەسەڵاتێک)</option>
-            </select>
-            <button id="saveUserBtn" class="btn btn-success" style="width:100%" onclick="saveUser()">تۆمارکردن</button>
+        <div
+          style="
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+          "
+        >
+          <input type="hidden" id="editUserId" />
+          <input type="text" id="newUserName" placeholder="ناو" />
+          <input type="text" id="newUserPass" placeholder="پاسۆرد" />
+          <select id="newUserRole">
+            <option value="staff">کارمەندی وەسڵ بڕ</option>
+            <option value="accounts">ژمێریار (بینین)</option>
+            <option value="audit">وردبین (هەموو دەسەڵاتێک)</option>
+            <option value="admin">بەڕێوەبەر (هەموو دەسەڵاتێک)</option>
+          </select>
+          <button
+            id="saveUserBtn"
+            class="btn btn-success"
+            style="width: 100%"
+            onclick="saveUser()"
+          >
+            تۆمارکردن
+          </button>
         </div>
-        <table style="font-size: 14px;">
-            <thead><tr><th>ناو</th><th>پاسۆرد</th><th>دەسەڵات</th><th>کردار</th></tr></thead>
-            <tbody id="userTableBody"></tbody>
+        <table style="font-size: 14px">
+          <thead>
+            <tr>
+              <th>ناو</th>
+              <th>پاسۆرد</th>
+              <th>دەسەڵات</th>
+              <th>کردار</th>
+            </tr>
+          </thead>
+          <tbody id="userTableBody"></tbody>
         </table>
+      </div>
     </div>
-</div>
 
-<script>
-    const firebaseConfig = {
+    <!-- Daily Report Modal -->
+    <div id="dailyReportModal" class="modal">
+      <div class="modal-content" style="max-width:650px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+          <h3 style="margin:0;">📊 ڕاپۆرتی ڕۆژانە</h3>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-primary" onclick="printDailyReport()">🖨️ پڕینت</button>
+            <button class="btn btn-danger" onclick="document.getElementById('dailyReportModal').style.display='none'">✕</button>
+          </div>
+        </div>
+        <div id="dailyReportContent"></div>
+      </div>
+    </div>
+
+    <!-- Hidden print area for daily report -->
+    <div id="daily-print-area">
+      <div class="print-logo">
+        <img src="logo.jpeg" alt="Sulaymaniyah Terminal" />
+      </div>
+      <div class="print-title">ڕاپۆرتی ڕۆژانەی تێرمیناڵی سەرەکی سلێمانی</div>
+      <div id="print-area-content"></div>
+    </div>
+
+    <!-- Monthly Report Modal -->
+    <div id="monthlyReportModal" class="modal">
+      <div class="modal-content" style="max-width:700px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+          <h3 style="margin:0;">📅 ڕاپۆرتی مانگانە</h3>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-primary" onclick="printMonthlyReport()">🖨️ پڕینت</button>
+            <button class="btn btn-danger" onclick="document.getElementById('monthlyReportModal').style.display='none'">✕</button>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-bottom:20px;">
+          <div>
+            <label style="font-weight:bold;display:block;margin-bottom:8px;">مانگ هەڵبژێرە:</label>
+            <input type="month" id="monthPicker" style="width:100%;margin-bottom:0;" onchange="loadMonthlyData(this.value)" />
+          </div>
+        </div>
+        <hr style="border:none;border-top:2px dashed #eee;margin:5px 0 20px;" />
+        <div style="background:#f9f9f9;padding:15px;border-radius:12px;margin-bottom:20px;">
+          <label style="font-weight:bold;display:block;margin-bottom:12px;">📆 حیساب کردنی نرخ لە بەروار بۆ بەروار:</label>
+          <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end;">
+            <div>
+              <label style="font-size:13px;color:#555;">لە:</label>
+              <input type="date" id="rangeFrom" style="margin-bottom:0;" />
+            </div>
+            <div>
+              <label style="font-size:13px;color:#555;">بۆ:</label>
+              <input type="date" id="rangeTo" style="margin-bottom:0;" />
+            </div>
+            <button class="btn btn-primary" onclick="calcRange()" style="white-space:nowrap;">حیساب بکە</button>
+          </div>
+          <div id="rangeResult" style="margin-top:15px;display:none;">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+              <div style="background:var(--primary);color:white;padding:14px;border-radius:10px;text-align:center;">
+                <div style="font-size:13px;opacity:.85;">کۆی وەسڵەکان</div>
+                <div id="rangeCount" style="font-size:22px;font-weight:bold;">0</div>
+              </div>
+              <div style="background:var(--dark);color:white;padding:14px;border-radius:10px;text-align:center;">
+                <div style="font-size:13px;opacity:.85;">کۆی نرخ</div>
+                <div id="rangeTotal" style="font-size:22px;font-weight:bold;">0 IQD</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div id="monthlyReportContent"></div>
+      </div>
+    </div>
+
+    <!-- Hidden print area for monthly report -->
+    <div id="monthly-print-area" style="display:none;">
+      <div class="print-logo">
+        <img src="logo.jpeg" alt="Sulaymaniyah Terminal" />
+      </div>
+      <div class="print-title">ڕاپۆرتی مانگانەی تێرمیناڵی سەرەکی سلێمانی</div>
+      <div id="monthly-print-content"></div>
+    </div>
+
+    <script>
+      const firebaseConfig = {
         apiKey: "AIzaSyCuUstd-6d0E-EbmQipv2mWk-bA55ajpQ0",
         authDomain: "car-system-4594d.firebaseapp.com",
         projectId: "car-system-4594d",
         storageBucket: "car-system-4594d.firebasestorage.app",
         messagingSenderId: "719030469585",
-        appId: "1:719030469585:web:7a23645b9e684b727dd6f0"
-    };
-    
-    const config2 = { 
-        apiKey: "AIzaSyAMI84_IuKUZVqc8ImMW7eahru20cTkjFM", 
-        authDomain: "sysam-k.firebaseapp.com", 
-        projectId: "sysam-k", 
-        storageBucket: "sysam-k.firebasestorage.app", 
-        messagingSenderId: "905972435434", 
-        appId: "1:905972435434:web:2501e11240523f8368ca93" 
-    };
+        appId: "1:719030469585:web:7a23645b9e684b727dd6f0",
+      };
 
-    const app1 = firebase.initializeApp(firebaseConfig, "app1");
-    const app2 = firebase.initializeApp(config2, "app2");
-    
-    const db1 = app1.firestore();
-    const db2 = app2.firestore();
+      const config2 = {
+        apiKey: "AIzaSyAMI84_IuKUZVqc8ImMW7eahru20cTkjFM",
+        authDomain: "sysam-k.firebaseapp.com",
+        projectId: "sysam-k",
+        storageBucket: "sysam-k.firebasestorage.app",
+        messagingSenderId: "905972435434",
+        appId: "1:905972435434:web:2501e11240523f8368ca93",
+      };
 
-    let currentUser = null;
-    let currentInvoices = [];
+      const app1 = firebase.initializeApp(firebaseConfig, "app1");
+      const app2 = firebase.initializeApp(config2, "app2");
 
-    window.onload = function() {
-        const savedUser = localStorage.getItem('terminalAdminUser');
+      const db1 = app1.firestore();
+      const db2 = app2.firestore();
+
+      let currentUser = null;
+      let currentInvoices = [];
+
+      window.onload = function () {
+        const savedUser = localStorage.getItem("terminalAdminUser");
         if (savedUser && savedUser !== "null") {
-            try {
-                currentUser = JSON.parse(savedUser);
-                startApp();
-            } catch(e) {
-                localStorage.removeItem('terminalAdminUser');
-                showLogin();
-            }
-        } else {
+          try {
+            currentUser = JSON.parse(savedUser);
+            startApp();
+          } catch (e) {
+            localStorage.removeItem("terminalAdminUser");
             showLogin();
+          }
+        } else {
+          showLogin();
         }
-    };
+      };
 
-    function showLogin() {
-        document.getElementById('login-overlay').style.display = 'flex';
-        document.getElementById('mainApp').style.display = 'none';
-        document.getElementById('userInput').value = "";
-        document.getElementById('passInput').value = "";
-    }
+      function showLogin() {
+        document.getElementById("login-overlay").style.display = "flex";
+        document.getElementById("mainApp").style.display = "none";
+        document.getElementById("userInput").value = "";
+        document.getElementById("passInput").value = "";
+      }
 
-    async function login() {
-        const user = document.getElementById('userInput').value.trim();
-        const pass = document.getElementById('passInput').value;
+      async function login() {
+        const user = document.getElementById("userInput").value.trim();
+        const pass = document.getElementById("passInput").value;
 
         if (user === "admin" && pass === "0055") {
-            currentUser = { name: "Admin Main", role: "admin" };
-            localStorage.setItem('terminalAdminUser', JSON.stringify(currentUser));
-            startApp();
-            return;
+          currentUser = { name: "Admin Main", role: "admin" };
+          localStorage.setItem(
+            "terminalAdminUser",
+            JSON.stringify(currentUser),
+          );
+          startApp();
+          return;
         }
 
         try {
-            const snap = await db1.collection("Employees").where("name", "==", user).where("password", "==", pass).get();
-            if (!snap.empty) {
-                currentUser = snap.docs[0].data();
-                if (currentUser.role === 'staff') {
-                    alert("تۆ دەسەڵاتی بینینی ئەم بەشەت نییە!");
-                } else {
-                    localStorage.setItem('terminalAdminUser', JSON.stringify(currentUser));
-                    startApp();
-                }
-            } else { 
-                alert("ناو یان پاسۆرد هەڵەیە!"); 
+          const snap = await db1
+            .collection("Employees")
+            .where("name", "==", user)
+            .where("password", "==", pass)
+            .get();
+          if (!snap.empty) {
+            currentUser = snap.docs[0].data();
+            if (currentUser.role === "staff") {
+              alert("تۆ دەسەڵاتی بینینی ئەم بەشەت نییە!");
+            } else {
+              localStorage.setItem(
+                "terminalAdminUser",
+                JSON.stringify(currentUser),
+              );
+              startApp();
             }
-        } catch(e) {
-            alert("هەڵە لە پەیوەندی داتابەیس!");
+          } else {
+            alert("ناو یان پاسۆرد هەڵەیە!");
+          }
+        } catch (e) {
+          alert("هەڵە لە پەیوەندی داتابەیس!");
         }
-    }
+      }
 
-   function logout() {
-        if(confirm("دڵنیای لە دەرچوون؟")) {
-            localStorage.removeItem('terminalAdminUser');
-            currentUser = null;
-            document.getElementById('login-overlay').style.display = 'flex';
-            document.getElementById('mainApp').style.display = 'none';
-            document.getElementById('userInput').value = "";
-            document.getElementById('passInput').value = "";
-            window.location.reload();
+      function logout() {
+        if (confirm("دڵنیای لە دەرچوون؟")) {
+          localStorage.removeItem("terminalAdminUser");
+          currentUser = null;
+          document.getElementById("login-overlay").style.display = "flex";
+          document.getElementById("mainApp").style.display = "none";
+          document.getElementById("userInput").value = "";
+          document.getElementById("passInput").value = "";
+          window.location.reload();
         }
-    }
+      }
 
-    function startApp() {
-        document.getElementById('login-overlay').style.display = 'none';
-        document.getElementById('mainApp').style.display = 'block';
-        
-        let displayRole = currentUser.role === 'admin' ? "بەڕێوەبەر" : (currentUser.role === 'audit' ? "وردبین" : "ژمێریار");
-        document.getElementById('userStatus').innerText = `بەخێرهاتی: ${currentUser.name} (${displayRole})`;
-        document.getElementById('reportDate').valueAsDate = new Date();
+      function startApp() {
+        document.getElementById("login-overlay").style.display = "none";
+        document.getElementById("mainApp").style.display = "block";
 
-        if (currentUser.role === 'admin' || currentUser.role === 'audit') {
-            document.getElementById('adminOnlyBtn').style.display = 'inline-flex';
-            document.getElementById('addCarBtn').style.display = 'inline-flex';
-            loadUsersList();
+        let displayRole =
+          currentUser.role === "admin"
+            ? "بەڕێوەبەر"
+            : currentUser.role === "audit"
+              ? "وردبین"
+              : "ژمێریار";
+        document.getElementById("userStatus").innerText =
+          `بەخێرهاتی: ${currentUser.name} (${displayRole})`;
+        document.getElementById("reportDate").valueAsDate = new Date();
+
+        if (currentUser.role === "admin" || currentUser.role === "audit") {
+          document.getElementById("adminOnlyBtn").style.display = "inline-flex";
+          document.getElementById("addCarBtn").style.display = "inline-flex";
+          loadUsersList();
         } else {
-            document.getElementById('adminOnlyBtn').style.display = 'none';
-            document.getElementById('addCarBtn').style.display = 'none';
+          document.getElementById("adminOnlyBtn").style.display = "none";
+          document.getElementById("addCarBtn").style.display = "none";
         }
 
         loadEmployees();
         fetchInvoices();
-    }
+      }
 
-    async function loadEmployees() {
-        const empSelect = document.getElementById('empFilter');
-        const snap = await db1.collection("Employees").where("role", "==", "staff").get();
+      async function loadEmployees() {
+        const empSelect = document.getElementById("empFilter");
+        const snap = await db1
+          .collection("Employees")
+          .where("role", "==", "staff")
+          .get();
         empSelect.innerHTML = '<option value="">هەموو کارمەندەکان</option>';
-        snap.forEach(doc => {
-            empSelect.innerHTML += `<option value="${doc.data().name}">${doc.data().name}</option>`;
+        snap.forEach((doc) => {
+          empSelect.innerHTML += `<option value="${doc.data().name}">${doc.data().name}</option>`;
         });
-    }
+      }
 
-    async function fetchInvoices() {
-        const date = document.getElementById('reportDate').value;
-        const lineVal = document.getElementById('lineFilter').value;
-        const empVal = document.getElementById('empFilter').value;
-        
+      async function fetchInvoices() {
+        const date = document.getElementById("reportDate").value;
+        const lineVal = document.getElementById("lineFilter").value;
+        const empVal = document.getElementById("empFilter").value;
+
         if (!date) return;
 
         // یەکەم جار هەموو داتاکان دەهێنین
-        const snap = await db1.collection("Invoices").doc(date).collection("AllInvoices").get();
-        
-        const tbody = document.getElementById('invoiceBody');
+        const snap = await db1
+          .collection("Invoices")
+          .doc(date)
+          .collection("AllInvoices")
+          .get();
+
+        const tbody = document.getElementById("invoiceBody");
         tbody.innerHTML = "";
-        let totalMoney = 0; let count = 0;
+        let totalMoney = 0;
+        let count = 0;
         let allItems = [];
 
-        snap.forEach(doc => {
-            const data = doc.data();
-            data.id = doc.id;
-            allItems.push(data);
+        snap.forEach((doc) => {
+          const data = doc.data();
+          data.id = doc.id;
+          allItems.push(data);
         });
 
         // لێرە ڕیزبەندییەکە ڕاست دەکەینەوە بۆ ئەوەی 50 و 100 تێکەڵ نەبن (ڕیزکردنی ژمارەیی)
         allItems.sort((a, b) => {
-            return (parseInt(a.invoiceNo) || 0) - (parseInt(b.invoiceNo) || 0);
+          return (parseInt(a.invoiceNo) || 0) - (parseInt(b.invoiceNo) || 0);
         });
 
         currentInvoices = [];
 
-        allItems.forEach(inv => {
-            const invId = inv.id;
-            if ((lineVal === "" || inv.line === lineVal) && (empVal === "" || inv.employee === empVal)) {
-                
-                currentInvoices.push(inv);
+        allItems.forEach((inv) => {
+          const invId = inv.id;
+          if (
+            (lineVal === "" || inv.line === lineVal) &&
+            (empVal === "" || inv.employee === empVal)
+          ) {
+            currentInvoices.push(inv);
 
-                const isDeleted = (inv.status === 'deleted' || inv.status === 'canceled');
-                if (!isDeleted) {
-                    count++;
-                    totalMoney += parseInt(inv.price) || 0;
-                }
+            const isDeleted =
+              inv.status === "deleted" || inv.status === "canceled";
+            if (!isDeleted) {
+              count++;
+              totalMoney += parseInt(inv.price) || 0;
+            }
 
-                let rowClass = isDeleted ? "deleted-row" : "";
-                let actionBtn = "";
-                
-                if (isDeleted) {
-                    if (currentUser.role === 'admin' || currentUser.role === 'audit') {
-                        actionBtn = `<button class="btn btn-success no-print" style="padding:5px 10px; font-size:12px;" onclick="restoreInvoice('${invId}', '${date}')">گەڕاندنەوە</button>`;
-                    } else {
-                        actionBtn = `<span style="font-size:12px; color:gray;">سڕاوەتەوە</span>`;
-                    }
-                } else {
-                    if (currentUser.role === 'admin' || currentUser.role === 'audit') {
-                        actionBtn = `<button class="btn btn-danger no-print" style="padding:5px 10px; font-size:12px;" onclick="softDeleteInvoice('${invId}', '${inv.carNumber}', '${date}')">سڕینەوە</button>`;
-                    }
-                }
+            let rowClass = isDeleted ? "deleted-row" : "";
+            let actionBtn = "";
 
-                tbody.innerHTML += `<tr class="${rowClass}">
-                    <td>${inv.invoiceNo || '---'}</td>
-                    <td>${inv.date ? (inv.date.includes(' ') ? inv.date.split(' ')[1] : inv.date) : '---'}</td>
+            if (isDeleted) {
+              if (
+                currentUser.role === "admin" ||
+                currentUser.role === "audit"
+              ) {
+                actionBtn = `<button class="btn btn-success no-print" style="padding:5px 10px; font-size:12px;" onclick="restoreInvoice('${invId}', '${date}')">گەڕاندنەوە</button>`;
+              } else {
+                actionBtn = `<span style="font-size:12px; color:gray;">سڕاوەتەوە</span>`;
+              }
+            } else {
+              if (
+                currentUser.role === "admin" ||
+                currentUser.role === "audit"
+              ) {
+                actionBtn = `<button class="btn btn-danger no-print" style="padding:5px 10px; font-size:12px;" onclick="softDeleteInvoice('${invId}', '${inv.carNumber}', '${date}')">سڕینەوە</button>`;
+              }
+            }
+
+            tbody.innerHTML += `<tr class="${rowClass}">
+                    <td>${inv.invoiceNo || "---"}</td>
+                    <td>${inv.date ? (inv.date.includes(" ") ? inv.date.split(" ")[1] : inv.date) : "---"}</td>
                     <td>${inv.employee}</td>
                     <td><b>${inv.carNumber}</b></td>
                     <td>${inv.type || "نادیار"}</td>
@@ -366,147 +852,190 @@
                     <td>${inv.note || ""}</td> <td class="reason-cell">${inv.deleteReason || ""}</td>
                     <td class="no-print">${actionBtn}</td>
                 </tr>`;
-            }
+          }
         });
-        
-        document.getElementById('totalCount').innerText = count;
-        document.getElementById('totalMoney').innerText = totalMoney.toLocaleString() + " IQD";
-        document.getElementById('topTotalCount').innerText = count;
-        document.getElementById('topTotalMoney').innerText = totalMoney.toLocaleString() + " IQD";
-    }
 
-    function downloadExcel() {
+        document.getElementById("totalCount").innerText = count;
+        document.getElementById("totalMoney").innerText =
+          totalMoney.toLocaleString() + " IQD";
+        document.getElementById("topTotalCount").innerText = count;
+        document.getElementById("topTotalMoney").innerText =
+          totalMoney.toLocaleString() + " IQD";
+      }
+
+      function downloadExcel() {
         if (currentInvoices.length === 0) {
-            alert("هیچ داتایەک نییە بۆ دابەزاندن!");
-            return;
+          alert("هیچ داتایەک نییە بۆ دابەزاندن!");
+          return;
         }
-        let csvContent = "\uFEFF"; 
-        csvContent += "ژ.وەسڵ,کات,کارمەند,ژمارەی ئۆتۆمبێل,جۆری ئۆتۆمبێل,هێڵ,نرخ,تێبینی,دۆخ\n";
-        currentInvoices.forEach(inv => {
-            let row = [
-                inv.invoiceNo || "",
-                inv.date || "",
-                inv.employee || "",
-                inv.carNumber || "",
-                inv.type || "",
-                inv.line || "",
-                inv.price || 0,
-                (inv.note || "").replace(/,/g, " "),
-                inv.status || "active"
-            ].join(",");
-            csvContent += row + "\n";
+        let csvContent = "\uFEFF";
+        csvContent +=
+          "ژ.وەسڵ,کات,کارمەند,ژمارەی ئۆتۆمبێل,جۆری ئۆتۆمبێل,هێڵ,نرخ,تێبینی,دۆخ\n";
+        currentInvoices.forEach((inv) => {
+          let row = [
+            inv.invoiceNo || "",
+            inv.date || "",
+            inv.employee || "",
+            inv.carNumber || "",
+            inv.type || "",
+            inv.line || "",
+            inv.price || 0,
+            (inv.note || "").replace(/,/g, " "),
+            inv.status || "active",
+          ].join(",");
+          csvContent += row + "\n";
         });
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const blob = new Blob([csvContent], {
+          type: "text/csv;charset=utf-8;",
+        });
         const link = document.createElement("a");
-        const date = document.getElementById('reportDate').value;
+        const date = document.getElementById("reportDate").value;
         const url = URL.createObjectURL(blob);
         link.setAttribute("href", url);
         link.setAttribute("download", `Report_${date}.csv`);
-        link.style.visibility = 'hidden';
+        link.style.visibility = "hidden";
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-    }
+      }
 
-    async function softDeleteInvoice(id, carNum, date) {
+      async function softDeleteInvoice(id, carNum, date) {
         const reason = prompt(`هۆکاری سڕینەوەی وەسڵی (${carNum}) بنووسە:`);
         if (!reason) return;
 
         try {
-            await db1.collection("Invoices").doc(date).collection("AllInvoices").doc(id).update({
-                status: 'deleted',
-                deleteReason: reason,
-                deletedBy: currentUser.name,
-                deletedAt: firebase.firestore.FieldValue.serverTimestamp()
+          await db1
+            .collection("Invoices")
+            .doc(date)
+            .collection("AllInvoices")
+            .doc(id)
+            .update({
+              status: "deleted",
+              deleteReason: reason,
+              deletedBy: currentUser.name,
+              deletedAt: firebase.firestore.FieldValue.serverTimestamp(),
             });
-            await db2.collection("Invoices").doc(date).collection("AllInvoices").doc(id).delete();
-            fetchInvoices();
-        } catch (e) { alert("هەڵە لە سڕینەوە"); }
-    }
+          await db2
+            .collection("Invoices")
+            .doc(date)
+            .collection("AllInvoices")
+            .doc(id)
+            .delete();
+          fetchInvoices();
+        } catch (e) {
+          alert("هەڵە لە سڕینەوە");
+        }
+      }
 
-    async function restoreInvoice(id, date) {
-        if(!confirm("دڵنیای لە گەڕاندنەوەی ئەم وەسڵە؟")) return;
+      async function restoreInvoice(id, date) {
+        if (!confirm("دڵنیای لە گەڕاندنەوەی ئەم وەسڵە؟")) return;
 
         try {
-            const docRef = db1.collection("Invoices").doc(date).collection("AllInvoices").doc(id);
-            const docSnap = await docRef.get();
-            const invData = docSnap.data();
+          const docRef = db1
+            .collection("Invoices")
+            .doc(date)
+            .collection("AllInvoices")
+            .doc(id);
+          const docSnap = await docRef.get();
+          const invData = docSnap.data();
 
-            await docRef.update({
-                status: 'active',
-                deleteReason: firebase.firestore.FieldValue.delete(),
-                deletedBy: firebase.firestore.FieldValue.delete(),
-                deletedAt: firebase.firestore.FieldValue.delete()
-            });
+          await docRef.update({
+            status: "active",
+            deleteReason: firebase.firestore.FieldValue.delete(),
+            deletedBy: firebase.firestore.FieldValue.delete(),
+            deletedAt: firebase.firestore.FieldValue.delete(),
+          });
 
-            const cleanData = {...invData};
-            cleanData.status = 'active';
-            delete cleanData.deleteReason;
-            delete cleanData.deletedBy;
-            delete cleanData.deletedAt;
+          const cleanData = { ...invData };
+          cleanData.status = "active";
+          delete cleanData.deleteReason;
+          delete cleanData.deletedBy;
+          delete cleanData.deletedAt;
 
-            await db2.collection("Invoices").doc(date).collection("AllInvoices").doc(id).set(cleanData);
-            alert("گەڕایەوە");
-            fetchInvoices();
-        } catch (e) { alert("هەڵە لە گەڕاندنەوە"); }
-    }
+          await db2
+            .collection("Invoices")
+            .doc(date)
+            .collection("AllInvoices")
+            .doc(id)
+            .set(cleanData);
+          alert("گەڕایەوە");
+          fetchInvoices();
+        } catch (e) {
+          alert("هەڵە لە گەڕاندنەوە");
+        }
+      }
 
-    function toggleModal(s) { 
-        document.getElementById('userModal').style.display = s ? 'flex' : 'none'; 
-        if(!s) clearUserForm();
-    }
+      function toggleModal(s) {
+        document.getElementById("userModal").style.display = s
+          ? "flex"
+          : "none";
+        if (!s) clearUserForm();
+      }
 
-    function clearUserForm() {
-        document.getElementById('editUserId').value = "";
-        document.getElementById('newUserName').value = "";
-        document.getElementById('newUserPass').value = "";
-        document.getElementById('newUserRole').value = "staff";
-        document.getElementById('saveUserBtn').innerText = "تۆمارکردن";
-        document.getElementById('saveUserBtn').className = "btn btn-success";
-    }
+      function clearUserForm() {
+        document.getElementById("editUserId").value = "";
+        document.getElementById("newUserName").value = "";
+        document.getElementById("newUserPass").value = "";
+        document.getElementById("newUserRole").value = "staff";
+        document.getElementById("saveUserBtn").innerText = "تۆمارکردن";
+        document.getElementById("saveUserBtn").className = "btn btn-success";
+      }
 
-    async function saveUser() {
-        const id = document.getElementById('editUserId').value;
-        const n = document.getElementById('newUserName').value.trim();
-        const p = document.getElementById('newUserPass').value.trim();
-        const r = document.getElementById('newUserRole').value;
+      async function saveUser() {
+        const id = document.getElementById("editUserId").value;
+        const n = document.getElementById("newUserName").value.trim();
+        const p = document.getElementById("newUserPass").value.trim();
+        const r = document.getElementById("newUserRole").value;
 
-        if(!n || !p) return alert("تکایە خانەکان پڕ بکەرەوە");
+        if (!n || !p) return alert("تکایە خانەکان پڕ بکەرەوە");
 
         const userData = { name: n, password: p, role: r };
 
         try {
-            if(id) {
-                await db1.collection("Employees").doc(id).update(userData);
-                alert("بە سەرکەوتوویی نوێکرایەوە");
-            } else {
-                userData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
-                await db1.collection("Employees").add(userData);
-                alert("بە سەرکەوتوویی تۆمارکرا");
-            }
-            clearUserForm();
-            loadEmployees();
-        } catch (e) { alert("هەڵەیەک ڕوویدا!"); }
-    }
+          if (id) {
+            await db1.collection("Employees").doc(id).update(userData);
+            alert("بە سەرکەوتوویی نوێکرایەوە");
+          } else {
+            userData.createdAt =
+              firebase.firestore.FieldValue.serverTimestamp();
+            await db1.collection("Employees").add(userData);
+            alert("بە سەرکەوتوویی تۆمارکرا");
+          }
+          clearUserForm();
+          loadEmployees();
+        } catch (e) {
+          alert("هەڵەیەک ڕوویدا!");
+        }
+      }
 
-    function editUser(id, name, pass, role) {
-        document.getElementById('editUserId').value = id;
-        document.getElementById('newUserName').value = name;
-        document.getElementById('newUserPass').value = pass;
-        document.getElementById('newUserRole').value = role;
-        document.getElementById('saveUserBtn').innerText = "نوێکردنەوە";
-        document.getElementById('saveUserBtn').className = "btn btn-primary";
-    }
-    
-    function loadUsersList() {
-        db1.collection("Employees").orderBy("role").onSnapshot(snap => {
-            const tbody = document.getElementById('userTableBody');
+      function editUser(id, name, pass, role) {
+        document.getElementById("editUserId").value = id;
+        document.getElementById("newUserName").value = name;
+        document.getElementById("newUserPass").value = pass;
+        document.getElementById("newUserRole").value = role;
+        document.getElementById("saveUserBtn").innerText = "نوێکردنەوە";
+        document.getElementById("saveUserBtn").className = "btn btn-primary";
+      }
+
+      function loadUsersList() {
+        db1
+          .collection("Employees")
+          .orderBy("role")
+          .onSnapshot((snap) => {
+            const tbody = document.getElementById("userTableBody");
             tbody.innerHTML = "";
-            snap.forEach(doc => {
-                const u = doc.data();
-                const uid = doc.id;
-                let rClass = u.role === 'admin' ? "badge-admin" : (u.role === 'audit' ? "badge-audit" : (u.role === 'accounts' ? "badge-acc" : "badge-staff"));
-                tbody.innerHTML += `<tr>
+            snap.forEach((doc) => {
+              const u = doc.data();
+              const uid = doc.id;
+              let rClass =
+                u.role === "admin"
+                  ? "badge-admin"
+                  : u.role === "audit"
+                    ? "badge-audit"
+                    : u.role === "   "
+                      ? "badge-acc"
+                      : "badge-staff";
+              tbody.innerHTML += `<tr>
                     <td>${u.name}</td><td>${u.password}</td>
                     <td><span class="badge ${rClass}">${u.role}</span></td>
                     <td>
@@ -515,15 +1044,232 @@
                     </td>
                 </tr>`;
             });
-        });
-    }
+          });
+      }
 
-    async function deleteUser(id) {
-        if(confirm("دڵنیای لە سڕینەوە؟")) {
-            await db1.collection("Employees").doc(id).delete();
-            loadEmployees();
+      async function deleteUser(id) {
+        if (confirm("دڵنیای لە سڕینەوە؟")) {
+          await db1.collection("Employees").doc(id).delete();
+          loadEmployees();
         }
-    }
-</script>
-</body>
+      }
+
+      async function calcRange() {
+        const from = document.getElementById("rangeFrom").value;
+        const to = document.getElementById("rangeTo").value;
+        if (!from || !to) return alert("تکایە هەر دوو بەروار هەڵبژێرە!");
+        if (from > to) return alert("بەرواری (لە) دەبێت کەمتر بێت لە بەرواری (بۆ)!");
+
+        document.getElementById("rangeResult").style.display = "block";
+        document.getElementById("rangeCount").innerText = "...";
+        document.getElementById("rangeTotal").innerText = "...";
+
+        // Build list of all dates in range
+        const dates = [];
+        let cur = new Date(from);
+        const end = new Date(to);
+        while (cur <= end) {
+          dates.push(cur.toISOString().split("T")[0]);
+          cur.setDate(cur.getDate() + 1);
+        }
+
+        const promises = dates.map((d) =>
+          db1.collection("Invoices").doc(d).collection("AllInvoices").get()
+            .then((snap) => ({ snap }))
+            .catch(() => ({ snap: null }))
+        );
+
+        const results = await Promise.all(promises);
+        let grandTotal = 0;
+        let grandCount = 0;
+        results.forEach(({ snap }) => {
+          if (!snap) return;
+          snap.forEach((doc) => {
+            const data = doc.data();
+            if (data.status !== "deleted" && data.status !== "canceled") {
+              grandTotal += parseInt(data.price) || 0;
+              grandCount++;
+            }
+          });
+        });
+
+        document.getElementById("rangeCount").innerText = grandCount;
+        document.getElementById("rangeTotal").innerText = grandTotal.toLocaleString() + " IQD";
+      }
+
+      function printMonthlyReport() {
+        const content = document.getElementById("monthlyReportContent").innerHTML;
+        if (!content || content.includes("چاوەڕێ")) return alert("تکایە سەرەتا مانگێک هەڵبژێرە!");
+        const month = document.getElementById("monthPicker").value;
+        document.getElementById("monthly-print-content").innerHTML =
+          `<p style="text-align:center;color:#555;margin-bottom:5px;">مانگ: <b>${month}</b></p>` + content;
+        const el = document.getElementById("monthly-print-area");
+        el.classList.add("is-printing");
+        window.print();
+        el.classList.remove("is-printing");
+      }
+
+      function printDailyReport() {
+        const content = document.getElementById("dailyReportContent").innerHTML;
+        document.getElementById("print-area-content").innerHTML = content;
+        const el = document.getElementById("daily-print-area");
+        el.classList.add("is-printing");
+        window.print();
+        el.classList.remove("is-printing");
+      }
+
+      function showDailyReport() {
+        const date = document.getElementById("reportDate").value;
+        if (!date) return alert("تکایە بەروار هەڵبژێرە!");
+
+        // Group active invoices by employee
+        const empMap = {};
+        currentInvoices.forEach((inv) => {
+          if (inv.status === "deleted" || inv.status === "canceled") return;
+          const emp = inv.employee || "نادیار";
+          if (!empMap[emp]) empMap[emp] = { nos: [], total: 0, hours: [] };
+          const n = parseInt(inv.invoiceNo);
+          if (!isNaN(n)) empMap[emp].nos.push(n);
+          empMap[emp].total += parseInt(inv.price) || 0;
+          // Extract hour from date field e.g. "2026-04-07 08:30"
+          if (inv.date && inv.date.includes(" ")) {
+            const timePart = inv.date.split(" ")[1];
+            const hour = parseInt(timePart.split(":")[0]);
+            if (!isNaN(hour)) empMap[emp].hours.push(hour);
+          }
+        });
+
+        const entries = Object.entries(empMap);
+        if (entries.length === 0) {
+          document.getElementById("dailyReportContent").innerHTML =
+            '<p style="text-align:center;color:gray;">هیچ داتایەک نییە</p>';
+          document.getElementById("dailyReportModal").style.display = "flex";
+          return;
+        }
+
+        let rows = "";
+        let grandTotal = 0;
+        entries.forEach(([name, data]) => {
+          const min = data.nos.length ? Math.min(...data.nos) : "—";
+          const max = data.nos.length ? Math.max(...data.nos) : "—";
+          const range = min === max ? min : `${min}-${max}`;
+          grandTotal += data.total;
+
+          // Determine shift from average hour
+          let shift = "—";
+          if (data.hours.length) {
+            const avgHour = data.hours.reduce((a, b) => a + b, 0) / data.hours.length;
+            if (avgHour >= 8 && avgHour < 16) shift = "8-4";
+            else if (avgHour >= 16) shift = "4-12";
+            else shift = "12-8";
+          }
+
+          rows += `<tr>
+            <td style="font-weight:bold;">${name}</td>
+            <td>${shift}</td>
+            <td>${range}</td>
+            <td>${data.total.toLocaleString()} IQD</td>
+          </tr>`;
+        });
+
+        document.getElementById("dailyReportContent").innerHTML = `
+          <p style="text-align:center;color:#555;margin-bottom:15px;">بەروار: <b>${date}</b></p>
+          <table>
+            <thead><tr><th>ناوی کارمەند</th><th>کات</th><th>ژ.وەسڵ (لە - بۆ)</th><th>کۆی نرخ</th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+          <div style="background:var(--dark);color:white;padding:15px;border-radius:10px;text-align:center;margin-top:20px;">
+            <div style="font-size:14px;opacity:.85;">کۆی گشتی داهات</div>
+            <div style="font-size:24px;font-weight:bold;">${grandTotal.toLocaleString()} IQD</div>
+          </div>`;
+        document.getElementById("dailyReportModal").style.display = "flex";
+      }
+
+      function showMonthlyReport() {
+        document.getElementById("monthlyReportModal").style.display = "flex";
+        // Pre-fill month from selected date
+        const date = document.getElementById("reportDate").value;
+        if (date) {
+          const monthVal = date.substring(0, 7);
+          document.getElementById("monthPicker").value = monthVal;
+          loadMonthlyData(monthVal);
+        } else {
+          document.getElementById("monthlyReportContent").innerHTML = "";
+        }
+      }
+
+      async function loadMonthlyData(month) {
+        if (!month) return;
+        document.getElementById("monthlyReportContent").innerHTML =
+          '<p style="text-align:center;padding:20px;">⏳ چاوەڕێ بکە...</p>';
+
+        const [year, mon] = month.split("-").map(Number);
+        const daysInMonth = new Date(year, mon, 0).getDate();
+
+        const promises = [];
+        for (let d = 1; d <= daysInMonth; d++) {
+          const dateStr = `${year}-${String(mon).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+          promises.push(
+            db1
+              .collection("Invoices")
+              .doc(dateStr)
+              .collection("AllInvoices")
+              .get()
+              .then((snap) => ({ dateStr, snap }))
+              .catch(() => ({ dateStr, snap: null }))
+          );
+        }
+
+        const results = await Promise.all(promises);
+
+        let rows = "";
+        let grandTotal = 0;
+        let grandCount = 0;
+
+        results.forEach(({ dateStr, snap }) => {
+          if (!snap) return;
+          let dayTotal = 0;
+          let dayCount = 0;
+          snap.forEach((doc) => {
+            const data = doc.data();
+            if (data.status !== "deleted" && data.status !== "canceled") {
+              dayTotal += parseInt(data.price) || 0;
+              dayCount++;
+            }
+          });
+          if (dayCount > 0) {
+            grandTotal += dayTotal;
+            grandCount += dayCount;
+            rows += `<tr>
+              <td><b>${dateStr}</b></td>
+              <td>${dayCount}</td>
+              <td>${dayTotal.toLocaleString()} IQD</td>
+            </tr>`;
+          }
+        });
+
+        if (!rows) {
+          document.getElementById("monthlyReportContent").innerHTML =
+            '<p style="text-align:center;color:gray;">هیچ داتایەک نییە بۆ ئەم مانگە</p>';
+          return;
+        }
+
+        document.getElementById("monthlyReportContent").innerHTML = `
+          <table>
+            <thead><tr><th>بەروار</th><th>ژمارەی وەسڵ</th><th>کۆی نرخ</th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-top:20px;">
+            <div style="background:var(--primary);color:white;padding:15px;border-radius:10px;text-align:center;">
+              <div style="font-size:14px;opacity:.85;">کۆی وەسڵەکانی مانگ</div>
+              <div style="font-size:24px;font-weight:bold;">${grandCount}</div>
+            </div>
+            <div style="background:var(--dark);color:white;padding:15px;border-radius:10px;text-align:center;">
+              <div style="font-size:14px;opacity:.85;">کۆی داهاتی مانگ</div>
+              <div style="font-size:24px;font-weight:bold;">${grandTotal.toLocaleString()} IQD</div>
+            </div>
+          </div>`;
+      }
+    </script>
+  </body>
 </html>
