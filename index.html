@@ -304,7 +304,8 @@
         margin-bottom: 15px;
       }
       #daily-print-area .print-logo img,
-      #monthly-print-area .print-logo img {
+      #monthly-print-area .print-logo img,
+      #line-print-area .print-logo img {
         width: 250px;
         height: 250px;
         object-fit: contain;
@@ -414,6 +415,9 @@
           </button>
           <button class="btn" style="background:#16a085;" onclick="showMonthlyReport()">
             📅 ڕاپۆرتی مانگانە
+          </button>
+          <button class="btn" style="background:#8e44ad;" onclick="showLineReport()">
+            🗺️ ڕاپۆرتی هێڵەکان
           </button>
           <button class="btn btn-danger" onclick="logout()">🚪 دەرچوون</button>
         </div>
@@ -624,6 +628,29 @@
         </div>
         <div id="monthlyReportContent"></div>
       </div>
+    </div>
+
+    <!-- Line Report Modal -->
+    <div id="lineReportModal" class="modal">
+      <div class="modal-content" style="max-width:600px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+          <h3 style="margin:0;">🗺️ ڕاپۆرتی هێڵەکان</h3>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-primary" onclick="printLineReport()">🖨️ پڕینت</button>
+            <button class="btn btn-danger" onclick="document.getElementById('lineReportModal').style.display='none'">✕</button>
+          </div>
+        </div>
+        <div id="lineReportContent"></div>
+      </div>
+    </div>
+
+    <!-- Hidden print area for line report -->
+    <div id="line-print-area" style="display:none;">
+      <div class="print-logo">
+        <img src="logo.jpeg" alt="Sulaymaniyah Terminal" />
+      </div>
+      <div class="print-title">ڕاپۆرتی هێڵەکانی تێرمیناڵی سەرەکی سلێمانی</div>
+      <div id="line-print-content"></div>
     </div>
 
     <!-- Hidden print area for monthly report -->
@@ -1098,6 +1125,95 @@
 
         document.getElementById("rangeCount").innerText = grandCount;
         document.getElementById("rangeTotal").innerText = grandTotal.toLocaleString() + " IQD";
+      }
+
+      function showLineReport() {
+        const date = document.getElementById("reportDate").value;
+        if (!date) return alert("تکایە بەروار هەڵبژێرە!");
+
+        // Group by line, then by vehicle type
+        const lineMap = {};
+        currentInvoices.forEach((inv) => {
+          if (inv.status === "deleted" || inv.status === "canceled") return;
+          const line = inv.line || "نادیار";
+          const type = inv.type || "نادیار";
+          if (!lineMap[line]) lineMap[line] = { types: {}, total: 0, count: 0 };
+          if (!lineMap[line].types[type]) lineMap[line].types[type] = { count: 0, total: 0 };
+          lineMap[line].types[type].count++;
+          lineMap[line].types[type].total += parseInt(inv.price) || 0;
+          lineMap[line].count++;
+          lineMap[line].total += parseInt(inv.price) || 0;
+        });
+
+        const entries = Object.entries(lineMap).sort((a, b) => b[1].count - a[1].count);
+
+        if (entries.length === 0) {
+          document.getElementById("lineReportContent").innerHTML =
+            '<p style="text-align:center;color:gray;">هیچ داتایەک نییە</p>';
+          document.getElementById("lineReportModal").style.display = "flex";
+          return;
+        }
+
+        let rows = "";
+        let grandTotal = 0;
+        let grandCount = 0;
+
+        entries.forEach(([line, data]) => {
+          grandTotal += data.total;
+          grandCount += data.count;
+
+          // Build sub-rows for each vehicle type
+          const typeEntries = Object.entries(data.types).sort((a, b) => b[1].count - a[1].count);
+          const typeHtml = typeEntries.map(([type, td]) =>
+            `<span style="display:inline-block;background:#f0f3f5;border-radius:6px;padding:3px 10px;margin:2px;font-size:13px;">
+              ${type}: <b>${td.count}</b> | ${td.total.toLocaleString()} IQD
+            </span>`
+          ).join("");
+
+          rows += `<tr>
+            <td style="font-weight:bold;font-size:15px;">${line}</td>
+            <td>${data.count}</td>
+            <td style="text-align:right;">${typeHtml}</td>
+            <td>${data.total.toLocaleString()} IQD</td>
+          </tr>`;
+        });
+
+        document.getElementById("lineReportContent").innerHTML = `
+          <p style="text-align:center;color:#555;margin-bottom:15px;">بەروار: <b>${date}</b></p>
+          <table>
+            <thead>
+              <tr>
+                <th>هێڵ</th>
+                <th>کۆی وەسڵ</th>
+                <th>جۆری ئۆتۆمبێل</th>
+                <th>کۆی نرخ</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:20px;">
+            <div style="background:var(--primary);color:white;padding:14px;border-radius:10px;text-align:center;">
+              <div style="font-size:13px;opacity:.85;">کۆی وەسڵەکان</div>
+              <div style="font-size:24px;font-weight:bold;">${grandCount}</div>
+            </div>
+            <div style="background:var(--dark);color:white;padding:14px;border-radius:10px;text-align:center;">
+              <div style="font-size:13px;opacity:.85;">کۆی گشتی داهات</div>
+              <div style="font-size:24px;font-weight:bold;">${grandTotal.toLocaleString()} IQD</div>
+            </div>
+          </div>`;
+        document.getElementById("lineReportModal").style.display = "flex";
+      }
+
+      function printLineReport() {
+        const content = document.getElementById("lineReportContent").innerHTML;
+        if (!content) return alert("هیچ داتایەک نییە!");
+        document.getElementById("line-print-content").innerHTML = content;
+        const el = document.getElementById("line-print-area");
+        document.body.classList.add("report-printing");
+        el.classList.add("is-printing");
+        window.print();
+        el.classList.remove("is-printing");
+        document.body.classList.remove("report-printing");
       }
 
       function printMonthlyReport() {
