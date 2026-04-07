@@ -134,7 +134,7 @@
                 <th>جۆری ئۆتۆمبێل</th>
                 <th>هێڵ</th>
                 <th>نرخ (دینار)</th>
-                <th>تێبینی سڕینەوە</th>
+                <th>تێبینی وەسڵ</th> <th>تێبینی سڕینەوە</th>
                 <th class="no-print">کردار</th>
             </tr>
         </thead>
@@ -258,24 +258,16 @@
 
    function logout() {
         if(confirm("دڵنیای لە دەرچوون؟")) {
-            // 1. سڕینەوەی داتاکان لە ناو بیرگەی براوسەر
             localStorage.removeItem('terminalAdminUser');
-            
-            // 2. گۆڕینی بارودۆخی بەکارهێنەری ئێستا بۆ هیچ
             currentUser = null;
-
-            // 3. نیشاندانی لاپەڕەی لۆگین و شاردنەوەی ئەپەکە
             document.getElementById('login-overlay').style.display = 'flex';
             document.getElementById('mainApp').style.display = 'none';
-            
-            // 4. پاککردنەوەی خانەکانی ناو و پاسۆرد
             document.getElementById('userInput').value = "";
             document.getElementById('passInput').value = "";
-
-            // 5. ڕیفرێشکردنی لاپەڕەکە بۆ دڵنیایی تەواو
             window.location.reload();
         }
     }
+
     function startApp() {
         document.getElementById('login-overlay').style.display = 'none';
         document.getElementById('mainApp').style.display = 'block';
@@ -313,6 +305,7 @@
         
         if (!date) return;
 
+        // لێرەدا ڕیزبەندییەکە گۆڕدراوە بۆ asc بۆ ئەوەی بچووکترین لە سەرەوە بێت
         const snap = await db1.collection("Invoices").doc(date).collection("AllInvoices").orderBy("invoiceNo", "asc").get();
         
         const tbody = document.getElementById('invoiceBody');
@@ -352,7 +345,7 @@
                     <td>${inv.type || "نادیار"}</td>
                     <td>${inv.line}</td>
                     <td>${parseInt(inv.price).toLocaleString()} IQD</td>
-                    <td class="reason-cell">${inv.deleteReason || ""}</td>
+                    <td>${inv.note || ""}</td> <td class="reason-cell">${inv.deleteReason || ""}</td>
                     <td class="no-print">${actionBtn}</td>
                 </tr>`;
             }
