@@ -127,7 +127,7 @@
     <table>
         <thead>
             <tr>
-                <th>ژ.وەسڵ</th>
+                <th>ڕیزبەندی</th>
                 <th>کات</th>
                 <th>کارمەند</th>
                 <th>ژمارەی ئۆتۆمبێل</th>
@@ -305,23 +305,20 @@
         
         if (!date) return;
 
-        // لێرەدا ڕیزبەندییەکە گۆڕدراوە بۆ asc بۆ ئەوەی بچووکترین لە سەرەوە بێت
         const snap = await db1.collection("Invoices").doc(date).collection("AllInvoices").orderBy("invoiceNo", "asc").get();
         
         const tbody = document.getElementById('invoiceBody');
         tbody.innerHTML = "";
-        let totalMoney = 0; let count = 0;
+        let totalMoney = 0; 
+        let count = 0;
+        let displayIndex = 1; // ڕیزبەندی لێرەوە دەستپێدەکات
 
         snap.forEach(doc => {
             const inv = doc.data();
             const invId = doc.id;
             if ((lineVal === "" || inv.line === lineVal) && (empVal === "" || inv.employee === empVal)) {
                 const isDeleted = (inv.status === 'deleted' || inv.status === 'canceled');
-                if (!isDeleted) {
-                    count++;
-                    totalMoney += parseInt(inv.price) || 0;
-                }
-
+                
                 let rowClass = isDeleted ? "deleted-row" : "";
                 let actionBtn = "";
                 
@@ -332,13 +329,16 @@
                         actionBtn = `<span style="font-size:12px; color:gray;">سڕاوەتەوە</span>`;
                     }
                 } else {
+                    count++;
+                    totalMoney += parseInt(inv.price) || 0;
                     if (currentUser.role === 'admin' || currentUser.role === 'audit') {
                         actionBtn = `<button class="btn btn-danger no-print" style="padding:5px 10px; font-size:12px;" onclick="softDeleteInvoice('${invId}', '${inv.carNumber}', '${date}')">سڕینەوە</button>`;
                     }
                 }
 
+                // لێرەدا displayIndex بەکارهاتووە بۆ نیشاندانی ڕیزبەندی
                 tbody.innerHTML += `<tr class="${rowClass}">
-                    <td>${inv.invoiceNo || '---'}</td>
+                    <td>${displayIndex++}</td>
                     <td>${inv.date ? (inv.date.includes(' ') ? inv.date.split(' ')[1] : inv.date) : '---'}</td>
                     <td>${inv.employee}</td>
                     <td><b>${inv.carNumber}</b></td>
