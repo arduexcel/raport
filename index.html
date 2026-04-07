@@ -249,15 +249,18 @@
           width: 100%;
           padding: 0;
         }
-        body > * {
+        .no-print {
           display: none !important;
         }
-        .is-printing {
+        body.report-printing > *:not(.is-printing) {
+          display: none !important;
+        }
+        body.report-printing .is-printing {
           display: block !important;
           direction: rtl;
           font-family: "Segoe UI", Tahoma, sans-serif;
         }
-        .is-printing .print-logo {
+        body.report-printing .is-printing .print-logo {
           display: block !important;
         }
         #monthly-print-area table {
@@ -1104,18 +1107,22 @@
         document.getElementById("monthly-print-content").innerHTML =
           `<p style="text-align:center;color:#555;margin-bottom:5px;">مانگ: <b>${month}</b></p>` + content;
         const el = document.getElementById("monthly-print-area");
+        document.body.classList.add("report-printing");
         el.classList.add("is-printing");
         window.print();
         el.classList.remove("is-printing");
+        document.body.classList.remove("report-printing");
       }
 
       function printDailyReport() {
         const content = document.getElementById("dailyReportContent").innerHTML;
         document.getElementById("print-area-content").innerHTML = content;
         const el = document.getElementById("daily-print-area");
+        document.body.classList.add("report-printing");
         el.classList.add("is-printing");
         window.print();
         el.classList.remove("is-printing");
+        document.body.classList.remove("report-printing");
       }
 
       function showDailyReport() {
