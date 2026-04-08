@@ -417,6 +417,9 @@
           <button class="btn" style="background:#e67e22;" onclick="showDailyReport()">
             📊 ڕاپۆرتی ڕۆژانە
           </button>
+          <button class="btn" style="background:#27ae60;" onclick="openManualInvoiceModal()">
+            ✍️ زیادکردنی وەسڵی دەستی
+          </button>
           <button class="btn" style="background:#16a085;" onclick="showMonthlyReport()">
             📅 ڕاپۆرتی مانگانە
           </button>
@@ -565,6 +568,29 @@
     </div>
 
     <!-- Daily Report Modal -->
+    <!-- Manual Invoice Modal -->
+    <div id="manualInvoiceModal" class="modal">
+      <div class="modal-content" style="max-width:400px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+          <h3 style="margin:0;">✍️ زیادکردنی وەسڵی دەستی</h3>
+          <button class="btn btn-danger" onclick="document.getElementById('manualInvoiceModal').style.display='none'">✕</button>
+        </div>
+        <div id="manualInvoiceCurrentDisplay" style="display:none;background:#eafaf1;border:1px solid #a9dfbf;border-radius:8px;padding:12px;margin-bottom:15px;text-align:center;">
+          <div style="font-size:13px;color:#555;margin-bottom:4px;">نرخی تۆمارکراوی ئێستا:</div>
+          <div id="manualInvoiceCurrentValue" style="font-size:20px;font-weight:bold;color:#27ae60;"></div>
+        </div>
+        <div style="margin-bottom:15px;">
+          <label style="font-weight:bold;display:block;margin-bottom:8px;">نرخی نوێ (IQD):</label>
+          <input type="number" id="manualInvoiceInput" min="0" placeholder="نرخەکە بنووسە..." style="width:100%;font-size:16px;" />
+        </div>
+        <div style="display:flex;gap:10px;justify-content:flex-end;">
+          <button class="btn btn-danger" onclick="document.getElementById('manualInvoiceModal').style.display='none'">هەڵوەشاندنەوە</button>
+          <button class="btn btn-success" onclick="saveManualInvoice()">تۆمارکردن</button>
+        </div>
+        <div id="manualInvoiceSaved" style="margin-top:15px;color:green;font-weight:bold;text-align:center;display:none;"></div>
+      </div>
+    </div>
+
     <div id="dailyReportModal" class="modal">
       <div class="modal-content" style="max-width:650px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
@@ -693,6 +719,7 @@
 
       let currentUser = null;
       let currentInvoices = [];
+      let manualInvoicePrices = {}; // keyed by date string e.g. "2026-04-05"
 
       window.onload = function () {
         const savedUser = localStorage.getItem("terminalAdminUser");
@@ -767,7 +794,7 @@
         }
       }
 
-      function startApp() {
+      async function startApp() {
         document.getElementById("login-overlay").style.display = "none";
         document.getElementById("mainApp").style.display = "block";
 
@@ -793,6 +820,7 @@
         }
 
         loadEmployees();
+        await loadManualInvoicePrices();
         fetchInvoices();
       }
 
@@ -900,12 +928,15 @@
           }
         });
 
+        const manualExtra = manualInvoicePrices[date] || 0;
+        const displayTotal = totalMoney + manualExtra;
+
         document.getElementById("totalCount").innerText = count;
         document.getElementById("totalMoney").innerText =
-          totalMoney.toLocaleString() + " IQD";
+          displayTotal.toLocaleString() + " IQD";
         document.getElementById("topTotalCount").innerText = count;
         document.getElementById("topTotalMoney").innerText =
-          totalMoney.toLocaleString() + " IQD";
+          displayTotal.toLocaleString() + " IQD";
       }
 
       function downloadExcel() {
@@ -1256,6 +1287,48 @@
         document.body.classList.remove("report-printing");
       }
 
+      function openManualInvoiceModal() {
+        const date = document.getElementById("reportDate").value;
+        if (!date) return alert("تکایە بەروار هەڵبژێرە!");
+        const existing = manualInvoicePrices[date] || 0;
+        const display = document.getElementById("manualInvoiceCurrentDisplay");
+        if (existing > 0) {
+          document.getElementById("manualInvoiceCurrentValue").innerText = existing.toLocaleString() + " IQD";
+          display.style.display = "block";
+        } else {
+          display.style.display = "none";
+        }
+        document.getElementById("manualInvoiceInput").value = "";
+        document.getElementById("manualInvoiceSaved").style.display = "none";
+        document.getElementById("manualInvoiceModal").style.display = "flex";
+      }
+
+      async function saveManualInvoice() {
+        const date = document.getElementById("reportDate").value;
+        const val = parseInt(document.getElementById("manualInvoiceInput").value) || 0;
+        manualInvoicePrices[date] = val;
+        // save to Firestore
+        await db1.collection("ManualInvoices").doc(date).set({ price: val });
+        fetchInvoices(); // refresh totals
+        // update the display inside the modal
+        document.getElementById("manualInvoiceCurrentValue").innerText = val.toLocaleString() + " IQD";
+        document.getElementById("manualInvoiceCurrentDisplay").style.display = val > 0 ? "block" : "none";
+        document.getElementById("manualInvoiceInput").value = "";
+        const saved = document.getElementById("manualInvoiceSaved");
+        saved.innerText = `✅ تۆمارکرا: ${val.toLocaleString()} IQD`;
+        saved.style.display = "block";
+        setTimeout(() => {
+          document.getElementById("manualInvoiceModal").style.display = "none";
+        }, 1200);
+      }
+
+      async function loadManualInvoicePrices() {
+        const snap = await db1.collection("ManualInvoices").get();
+        snap.forEach((doc) => {
+          manualInvoicePrices[doc.id] = doc.data().price || 0;
+        });
+      }
+
       function showDailyReport() {
         const date = document.getElementById("reportDate").value;
         if (!date) return alert("تکایە بەروار هەڵبژێرە!");
@@ -1310,11 +1383,23 @@
           </tr>`;
         });
 
+        const manualExtra = manualInvoicePrices[date] || 0;
+        let manualRow = "";
+        if (manualExtra > 0) {
+          manualRow = `<tr style="background:#eafaf1;">
+            <td style="font-weight:bold;color:#27ae60;">✍️ زیادکردنی وەسڵی دەستی</td>
+            <td>—</td>
+            <td>—</td>
+            <td style="color:#27ae60;font-weight:bold;">${manualExtra.toLocaleString()} IQD</td>
+          </tr>`;
+          grandTotal += manualExtra;
+        }
+
         document.getElementById("dailyReportContent").innerHTML = `
           <p style="text-align:center;color:#555;margin-bottom:15px;">بەروار: <b>${date}</b></p>
           <table>
             <thead><tr><th>ناوی کارمەند</th><th>کات</th><th>ژ.وەسڵ (لە - بۆ)</th><th>کۆی نرخ</th></tr></thead>
-            <tbody>${rows}</tbody>
+            <tbody>${rows}${manualRow}</tbody>
           </table>
           <div style="background:var(--dark);color:white;padding:15px;border-radius:10px;text-align:center;margin-top:20px;">
             <div style="font-size:14px;opacity:.85;">کۆی گشتی داهات</div>
@@ -1375,13 +1460,15 @@
               dayCount++;
             }
           });
-          if (dayCount > 0) {
-            grandTotal += dayTotal;
+          const manualExtra = manualInvoicePrices[dateStr] || 0;
+          const dayTotalWithManual = dayTotal + manualExtra;
+          if (dayCount > 0 || manualExtra > 0) {
+            grandTotal += dayTotalWithManual;
             grandCount += dayCount;
             rows += `<tr>
               <td><b>${dateStr}</b></td>
               <td>${dayCount}</td>
-              <td>${dayTotal.toLocaleString()} IQD</td>
+              <td>${dayTotalWithManual.toLocaleString()} IQD${manualExtra > 0 ? ` <span style="color:#27ae60;font-size:12px;">(+${manualExtra.toLocaleString()} دەستی)</span>` : ""}</td>
             </tr>`;
           }
         });
