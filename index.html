@@ -384,6 +384,10 @@
             id="userStatus"
             style="color: var(--primary); font-weight: bold; margin-top: 5px"
           ></div>
+          <div
+            id="printDateTime"
+            style="color: var(--dark); font-size: 1.1em; font-weight: bold; margin-top: 3px"
+          ></div>
         </div>
         <div class="no-print">
           <button
@@ -448,7 +452,7 @@
       >
         <div>
           <label style="font-weight: bold">بەروار:</label>
-          <input type="date" id="reportDate" onchange="fetchInvoices()" />
+          <input type="date" id="reportDate" onchange="fetchInvoices(); updatePrintDate();" />
         </div>
         <div>
           <label style="font-weight: bold">هێڵ:</label>
@@ -775,7 +779,9 @@
               : "ژمێریار";
         document.getElementById("userStatus").innerText =
           `بەخێرهاتی: ${currentUser.name} (${displayRole})`;
-        document.getElementById("reportDate").valueAsDate = new Date();
+        const now = new Date();
+        document.getElementById("reportDate").valueAsDate = now;
+        updatePrintDate();
 
         if (currentUser.role === "admin" || currentUser.role === "audit") {
           document.getElementById("adminOnlyBtn").style.display = "inline-flex";
@@ -800,6 +806,15 @@
         snap.forEach((doc) => {
           empSelect.innerHTML += `<option value="${doc.data().name}">${doc.data().name}</option>`;
         });
+      }
+
+      function updatePrintDate() {
+        const val = document.getElementById("reportDate").value;
+        const d = val ? new Date(val + "T00:00:00") : new Date();
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, "0");
+        const dd = String(d.getDate()).padStart(2, "0");
+        document.getElementById("printDateTime").innerText = `${yyyy}/${mm}/${dd}`;
       }
 
       async function fetchInvoices() {
