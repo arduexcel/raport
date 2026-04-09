@@ -240,6 +240,17 @@
         background: var(--success);
       }
 
+      @page {
+        @bottom-center {
+          content: "پەڕەی " counter(page);
+          font-size: 15px;
+          margin-bottom: 50px;
+          color: #555;
+          font-weight: bold;
+          font-family: "Segoe UI", Tahoma, sans-serif;
+        }
+      }
+
       @media print {
         .no-print {
           display: none !important;
@@ -386,7 +397,12 @@
           ></div>
           <div
             id="printDateTime"
-            style="color: var(--dark); font-size: 1.1em; font-weight: bold; margin-top: 3px"
+            style="
+              color: var(--dark);
+              font-size: 1.1em;
+              font-weight: bold;
+              margin-top: 3px;
+            "
           ></div>
         </div>
         <div class="no-print">
@@ -414,16 +430,32 @@
           <button class="btn btn-success" onclick="window.print()">
             🖨️ پڕینت
           </button>
-          <button class="btn" style="background:#e67e22;" onclick="showDailyReport()">
+          <button
+            class="btn"
+            style="background: #e67e22"
+            onclick="showDailyReport()"
+          >
             📊 ڕاپۆرتی ڕۆژانە
           </button>
-          <button class="btn" style="background:#27ae60;" onclick="openManualInvoiceModal()">
+          <button
+            class="btn"
+            style="background: #27ae60"
+            onclick="openManualInvoiceModal()"
+          >
             ✍️ زیادکردنی وەسڵی دەستی
           </button>
-          <button class="btn" style="background:#16a085;" onclick="showMonthlyReport()">
+          <button
+            class="btn"
+            style="background: #16a085"
+            onclick="showMonthlyReport()"
+          >
             📅 ڕاپۆرتی مانگانە
           </button>
-          <button class="btn" style="background:#8e44ad;" onclick="showLineReport()">
+          <button
+            class="btn"
+            style="background: #8e44ad"
+            onclick="showLineReport()"
+          >
             🗺️ ڕاپۆرتی هێڵەکان
           </button>
           <button class="btn btn-danger" onclick="logout()">🚪 دەرچوون</button>
@@ -455,7 +487,14 @@
       >
         <div>
           <label style="font-weight: bold">بەروار:</label>
-          <input type="date" id="reportDate" onchange="fetchInvoices(); updatePrintDate();" />
+          <input
+            type="date"
+            id="reportDate"
+            onchange="
+              fetchInvoices();
+              updatePrintDate();
+            "
+          />
         </div>
         <div>
           <label style="font-weight: bold">هێڵ:</label>
@@ -570,34 +609,109 @@
     <!-- Daily Report Modal -->
     <!-- Manual Invoice Modal -->
     <div id="manualInvoiceModal" class="modal">
-      <div class="modal-content" style="max-width:400px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
-          <h3 style="margin:0;">✍️ زیادکردنی وەسڵی دەستی</h3>
-          <button class="btn btn-danger" onclick="document.getElementById('manualInvoiceModal').style.display='none'">✕</button>
+      <div class="modal-content" style="max-width: 400px">
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+          "
+        >
+          <h3 style="margin: 0">✍️ زیادکردنی وەسڵی دەستی</h3>
+          <button
+            class="btn btn-danger"
+            onclick="
+              document.getElementById('manualInvoiceModal').style.display =
+                'none'
+            "
+          >
+            ✕
+          </button>
         </div>
-        <div id="manualInvoiceCurrentDisplay" style="display:none;background:#eafaf1;border:1px solid #a9dfbf;border-radius:8px;padding:12px;margin-bottom:15px;text-align:center;">
-          <div style="font-size:13px;color:#555;margin-bottom:4px;">نرخی تۆمارکراوی ئێستا:</div>
-          <div id="manualInvoiceCurrentValue" style="font-size:20px;font-weight:bold;color:#27ae60;"></div>
+        <div
+          id="manualInvoiceCurrentDisplay"
+          style="
+            display: none;
+            background: #eafaf1;
+            border: 1px solid #a9dfbf;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 15px;
+            text-align: center;
+          "
+        >
+          <div style="font-size: 13px; color: #555; margin-bottom: 4px">
+            نرخی تۆمارکراوی ئێستا:
+          </div>
+          <div
+            id="manualInvoiceCurrentValue"
+            style="font-size: 20px; font-weight: bold; color: #27ae60"
+          ></div>
         </div>
-        <div style="margin-bottom:15px;">
-          <label style="font-weight:bold;display:block;margin-bottom:8px;">نرخی نوێ (IQD):</label>
-          <input type="number" id="manualInvoiceInput" min="0" placeholder="نرخەکە بنووسە..." style="width:100%;font-size:16px;" />
+        <div style="margin-bottom: 15px">
+          <label style="font-weight: bold; display: block; margin-bottom: 8px"
+            >نرخی نوێ (IQD):</label
+          >
+          <input
+            type="number"
+            id="manualInvoiceInput"
+            min="0"
+            placeholder="نرخەکە بنووسە..."
+            style="width: 100%; font-size: 16px"
+          />
         </div>
-        <div style="display:flex;gap:10px;justify-content:flex-end;">
-          <button class="btn btn-danger" onclick="document.getElementById('manualInvoiceModal').style.display='none'">هەڵوەشاندنەوە</button>
-          <button class="btn btn-success" onclick="saveManualInvoice()">تۆمارکردن</button>
+        <div style="display: flex; gap: 10px; justify-content: flex-end">
+          <button
+            class="btn btn-danger"
+            onclick="
+              document.getElementById('manualInvoiceModal').style.display =
+                'none'
+            "
+          >
+            هەڵوەشاندنەوە
+          </button>
+          <button class="btn btn-success" onclick="saveManualInvoice()">
+            تۆمارکردن
+          </button>
         </div>
-        <div id="manualInvoiceSaved" style="margin-top:15px;color:green;font-weight:bold;text-align:center;display:none;"></div>
+        <div
+          id="manualInvoiceSaved"
+          style="
+            margin-top: 15px;
+            color: green;
+            font-weight: bold;
+            text-align: center;
+            display: none;
+          "
+        ></div>
       </div>
     </div>
 
     <div id="dailyReportModal" class="modal">
-      <div class="modal-content" style="max-width:650px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
-          <h3 style="margin:0;">📊 ڕاپۆرتی ڕۆژانە</h3>
-          <div style="display:flex;gap:8px;">
-            <button class="btn btn-primary" onclick="printDailyReport()">🖨️ پڕینت</button>
-            <button class="btn btn-danger" onclick="document.getElementById('dailyReportModal').style.display='none'">✕</button>
+      <div class="modal-content" style="max-width: 650px">
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+          "
+        >
+          <h3 style="margin: 0">📊 ڕاپۆرتی ڕۆژانە</h3>
+          <div style="display: flex; gap: 8px">
+            <button class="btn btn-primary" onclick="printDailyReport()">
+              🖨️ پڕینت
+            </button>
+            <button
+              class="btn btn-danger"
+              onclick="
+                document.getElementById('dailyReportModal').style.display =
+                  'none'
+              "
+            >
+              ✕
+            </button>
           </div>
         </div>
         <div id="dailyReportContent"></div>
@@ -615,43 +729,120 @@
 
     <!-- Monthly Report Modal -->
     <div id="monthlyReportModal" class="modal">
-      <div class="modal-content" style="max-width:700px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
-          <h3 style="margin:0;">📅 ڕاپۆرتی مانگانە</h3>
-          <div style="display:flex;gap:8px;">
-            <button class="btn btn-primary" onclick="printMonthlyReport()">🖨️ پڕینت</button>
-            <button class="btn btn-danger" onclick="document.getElementById('monthlyReportModal').style.display='none'">✕</button>
+      <div class="modal-content" style="max-width: 700px">
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+          "
+        >
+          <h3 style="margin: 0">📅 ڕاپۆرتی مانگانە</h3>
+          <div style="display: flex; gap: 8px">
+            <button class="btn btn-primary" onclick="printMonthlyReport()">
+              🖨️ پڕینت
+            </button>
+            <button
+              class="btn btn-danger"
+              onclick="
+                document.getElementById('monthlyReportModal').style.display =
+                  'none'
+              "
+            >
+              ✕
+            </button>
           </div>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-bottom:20px;">
+        <div
+          style="
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+          "
+        >
           <div>
-            <label style="font-weight:bold;display:block;margin-bottom:8px;">مانگ هەڵبژێرە:</label>
-            <input type="month" id="monthPicker" style="width:100%;margin-bottom:0;" onchange="loadMonthlyData(this.value)" />
+            <label style="font-weight: bold; display: block; margin-bottom: 8px"
+              >مانگ هەڵبژێرە:</label
+            >
+            <input
+              type="month"
+              id="monthPicker"
+              style="width: 100%; margin-bottom: 0"
+              onchange="loadMonthlyData(this.value)"
+            />
           </div>
         </div>
-        <hr style="border:none;border-top:2px dashed #eee;margin:5px 0 20px;" />
-        <div style="background:#f9f9f9;padding:15px;border-radius:12px;margin-bottom:20px;">
-          <label style="font-weight:bold;display:block;margin-bottom:12px;">📆 حیساب کردنی نرخ لە بەروار بۆ بەروار:</label>
-          <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end;">
+        <hr
+          style="border: none; border-top: 2px dashed #eee; margin: 5px 0 20px"
+        />
+        <div
+          style="
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+          "
+        >
+          <label style="font-weight: bold; display: block; margin-bottom: 12px"
+            >📆 حیساب کردنی نرخ لە بەروار بۆ بەروار:</label
+          >
+          <div
+            style="
+              display: grid;
+              grid-template-columns: 1fr 1fr auto;
+              gap: 10px;
+              align-items: end;
+            "
+          >
             <div>
-              <label style="font-size:13px;color:#555;">لە:</label>
-              <input type="date" id="rangeFrom" style="margin-bottom:0;" />
+              <label style="font-size: 13px; color: #555">لە:</label>
+              <input type="date" id="rangeFrom" style="margin-bottom: 0" />
             </div>
             <div>
-              <label style="font-size:13px;color:#555;">بۆ:</label>
-              <input type="date" id="rangeTo" style="margin-bottom:0;" />
+              <label style="font-size: 13px; color: #555">بۆ:</label>
+              <input type="date" id="rangeTo" style="margin-bottom: 0" />
             </div>
-            <button class="btn btn-primary" onclick="calcRange()" style="white-space:nowrap;">حیساب بکە</button>
+            <button
+              class="btn btn-primary"
+              onclick="calcRange()"
+              style="white-space: nowrap"
+            >
+              حیساب بکە
+            </button>
           </div>
-          <div id="rangeResult" style="margin-top:15px;display:none;">
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-              <div style="background:var(--primary);color:white;padding:14px;border-radius:10px;text-align:center;">
-                <div style="font-size:13px;opacity:.85;">کۆی وەسڵەکان</div>
-                <div id="rangeCount" style="font-size:22px;font-weight:bold;">0</div>
+          <div id="rangeResult" style="margin-top: 15px; display: none">
+            <div
+              style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px"
+            >
+              <div
+                style="
+                  background: var(--primary);
+                  color: white;
+                  padding: 14px;
+                  border-radius: 10px;
+                  text-align: center;
+                "
+              >
+                <div style="font-size: 13px; opacity: 0.85">کۆی وەسڵەکان</div>
+                <div id="rangeCount" style="font-size: 22px; font-weight: bold">
+                  0
+                </div>
               </div>
-              <div style="background:var(--dark);color:white;padding:14px;border-radius:10px;text-align:center;">
-                <div style="font-size:13px;opacity:.85;">کۆی نرخ</div>
-                <div id="rangeTotal" style="font-size:22px;font-weight:bold;">0 IQD</div>
+              <div
+                style="
+                  background: var(--dark);
+                  color: white;
+                  padding: 14px;
+                  border-radius: 10px;
+                  text-align: center;
+                "
+              >
+                <div style="font-size: 13px; opacity: 0.85">کۆی نرخ</div>
+                <div id="rangeTotal" style="font-size: 22px; font-weight: bold">
+                  0 IQD
+                </div>
               </div>
             </div>
           </div>
@@ -662,12 +853,29 @@
 
     <!-- Line Report Modal -->
     <div id="lineReportModal" class="modal">
-      <div class="modal-content" style="max-width:600px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
-          <h3 style="margin:0;">🗺️ ڕاپۆرتی هێڵەکان</h3>
-          <div style="display:flex;gap:8px;">
-            <button class="btn btn-primary" onclick="printLineReport()">🖨️ پڕینت</button>
-            <button class="btn btn-danger" onclick="document.getElementById('lineReportModal').style.display='none'">✕</button>
+      <div class="modal-content" style="max-width: 600px">
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+          "
+        >
+          <h3 style="margin: 0">🗺️ ڕاپۆرتی هێڵەکان</h3>
+          <div style="display: flex; gap: 8px">
+            <button class="btn btn-primary" onclick="printLineReport()">
+              🖨️ پڕینت
+            </button>
+            <button
+              class="btn btn-danger"
+              onclick="
+                document.getElementById('lineReportModal').style.display =
+                  'none'
+              "
+            >
+              ✕
+            </button>
           </div>
         </div>
         <div id="lineReportContent"></div>
@@ -675,7 +883,7 @@
     </div>
 
     <!-- Hidden print area for line report -->
-    <div id="line-print-area" style="display:none;">
+    <div id="line-print-area" style="display: none">
       <div class="print-logo">
         <img src="logo.jpeg" alt="Sulaymaniyah Terminal" />
       </div>
@@ -684,7 +892,7 @@
     </div>
 
     <!-- Hidden print area for monthly report -->
-    <div id="monthly-print-area" style="display:none;">
+    <div id="monthly-print-area" style="display: none">
       <div class="print-logo">
         <img src="logo.jpeg" alt="Sulaymaniyah Terminal" />
       </div>
@@ -842,7 +1050,8 @@
         const yyyy = d.getFullYear();
         const mm = String(d.getMonth() + 1).padStart(2, "0");
         const dd = String(d.getDate()).padStart(2, "0");
-        document.getElementById("printDateTime").innerText = `${yyyy}/${mm}/${dd}`;
+        document.getElementById("printDateTime").innerText =
+          `${yyyy}/${mm}/${dd}`;
       }
 
       async function fetchInvoices() {
@@ -1134,7 +1343,8 @@
         const from = document.getElementById("rangeFrom").value;
         const to = document.getElementById("rangeTo").value;
         if (!from || !to) return alert("تکایە هەر دوو بەروار هەڵبژێرە!");
-        if (from > to) return alert("بەرواری (لە) دەبێت کەمتر بێت لە بەرواری (بۆ)!");
+        if (from > to)
+          return alert("بەرواری (لە) دەبێت کەمتر بێت لە بەرواری (بۆ)!");
 
         document.getElementById("rangeResult").style.display = "block";
         document.getElementById("rangeCount").innerText = "...";
@@ -1150,9 +1360,13 @@
         }
 
         const promises = dates.map((d) =>
-          db1.collection("Invoices").doc(d).collection("AllInvoices").get()
+          db1
+            .collection("Invoices")
+            .doc(d)
+            .collection("AllInvoices")
+            .get()
             .then((snap) => ({ snap }))
-            .catch(() => ({ snap: null }))
+            .catch(() => ({ snap: null })),
         );
 
         const results = await Promise.all(promises);
@@ -1170,7 +1384,8 @@
         });
 
         document.getElementById("rangeCount").innerText = grandCount;
-        document.getElementById("rangeTotal").innerText = grandTotal.toLocaleString() + " IQD";
+        document.getElementById("rangeTotal").innerText =
+          grandTotal.toLocaleString() + " IQD";
       }
 
       function showLineReport() {
@@ -1184,14 +1399,17 @@
           const line = inv.line || "نادیار";
           const type = inv.type || "نادیار";
           if (!lineMap[line]) lineMap[line] = { types: {}, total: 0, count: 0 };
-          if (!lineMap[line].types[type]) lineMap[line].types[type] = { count: 0, total: 0 };
+          if (!lineMap[line].types[type])
+            lineMap[line].types[type] = { count: 0, total: 0 };
           lineMap[line].types[type].count++;
           lineMap[line].types[type].total += parseInt(inv.price) || 0;
           lineMap[line].count++;
           lineMap[line].total += parseInt(inv.price) || 0;
         });
 
-        const entries = Object.entries(lineMap).sort((a, b) => b[1].count - a[1].count);
+        const entries = Object.entries(lineMap).sort(
+          (a, b) => b[1].count - a[1].count,
+        );
 
         if (entries.length === 0) {
           document.getElementById("lineReportContent").innerHTML =
@@ -1209,12 +1427,17 @@
           grandCount += data.count;
 
           // Build sub-rows for each vehicle type
-          const typeEntries = Object.entries(data.types).sort((a, b) => b[1].count - a[1].count);
-          const typeHtml = typeEntries.map(([type, td]) =>
-            `<span style="display:inline-block;background:#f0f3f5;border-radius:6px;padding:3px 10px;margin:2px;font-size:13px;">
+          const typeEntries = Object.entries(data.types).sort(
+            (a, b) => b[1].count - a[1].count,
+          );
+          const typeHtml = typeEntries
+            .map(
+              ([type, td]) =>
+                `<span style="display:inline-block;background:#f0f3f5;border-radius:6px;padding:3px 10px;margin:2px;font-size:13px;">
               ${type}: <b>${td.count}</b> | ${td.total.toLocaleString()} IQD
-            </span>`
-          ).join("");
+            </span>`,
+            )
+            .join("");
 
           rows += `<tr>
             <td style="font-weight:bold;font-size:15px;">${line}</td>
@@ -1263,11 +1486,15 @@
       }
 
       function printMonthlyReport() {
-        const content = document.getElementById("monthlyReportContent").innerHTML;
-        if (!content || content.includes("چاوەڕێ")) return alert("تکایە سەرەتا مانگێک هەڵبژێرە!");
+        const content = document.getElementById(
+          "monthlyReportContent",
+        ).innerHTML;
+        if (!content || content.includes("چاوەڕێ"))
+          return alert("تکایە سەرەتا مانگێک هەڵبژێرە!");
         const month = document.getElementById("monthPicker").value;
         document.getElementById("monthly-print-content").innerHTML =
-          `<p style="text-align:center;color:#555;margin-bottom:5px;">مانگ: <b>${month}</b></p>` + content;
+          `<p style="text-align:center;color:#555;margin-bottom:5px;">مانگ: <b>${month}</b></p>` +
+          content;
         const el = document.getElementById("monthly-print-area");
         document.body.classList.add("report-printing");
         el.classList.add("is-printing");
@@ -1293,7 +1520,8 @@
         const existing = manualInvoicePrices[date] || 0;
         const display = document.getElementById("manualInvoiceCurrentDisplay");
         if (existing > 0) {
-          document.getElementById("manualInvoiceCurrentValue").innerText = existing.toLocaleString() + " IQD";
+          document.getElementById("manualInvoiceCurrentValue").innerText =
+            existing.toLocaleString() + " IQD";
           display.style.display = "block";
         } else {
           display.style.display = "none";
@@ -1305,14 +1533,17 @@
 
       async function saveManualInvoice() {
         const date = document.getElementById("reportDate").value;
-        const val = parseInt(document.getElementById("manualInvoiceInput").value) || 0;
+        const val =
+          parseInt(document.getElementById("manualInvoiceInput").value) || 0;
         manualInvoicePrices[date] = val;
         // save to Firestore
         await db1.collection("ManualInvoices").doc(date).set({ price: val });
         fetchInvoices(); // refresh totals
         // update the display inside the modal
-        document.getElementById("manualInvoiceCurrentValue").innerText = val.toLocaleString() + " IQD";
-        document.getElementById("manualInvoiceCurrentDisplay").style.display = val > 0 ? "block" : "none";
+        document.getElementById("manualInvoiceCurrentValue").innerText =
+          val.toLocaleString() + " IQD";
+        document.getElementById("manualInvoiceCurrentDisplay").style.display =
+          val > 0 ? "block" : "none";
         document.getElementById("manualInvoiceInput").value = "";
         const saved = document.getElementById("manualInvoiceSaved");
         saved.innerText = `✅ تۆمارکرا: ${val.toLocaleString()} IQD`;
@@ -1369,7 +1600,8 @@
           // Determine shift from average hour
           let shift = "—";
           if (data.hours.length) {
-            const avgHour = data.hours.reduce((a, b) => a + b, 0) / data.hours.length;
+            const avgHour =
+              data.hours.reduce((a, b) => a + b, 0) / data.hours.length;
             if (avgHour >= 8 && avgHour < 16) shift = "8-4";
             else if (avgHour >= 16) shift = "4-12";
             else shift = "12-8";
@@ -1439,7 +1671,7 @@
               .collection("AllInvoices")
               .get()
               .then((snap) => ({ dateStr, snap }))
-              .catch(() => ({ dateStr, snap: null }))
+              .catch(() => ({ dateStr, snap: null })),
           );
         }
 
