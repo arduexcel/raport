@@ -483,6 +483,9 @@
         >
           <h3 style="margin: 0">🗺️ ڕاپۆرتی هێڵەکان</h3>
           <div style="display: flex; gap: 8px">
+            <button class="btn" style="background:#16a085" onclick="openMonthlyLineModal()">
+              📅 دەرچوونی مانگانەی هێڵەکان
+            </button>
             <button class="btn btn-primary" onclick="printLineReport()">
               🖨️ پڕینت
             </button>
@@ -496,6 +499,51 @@
         </div>
         <div id="lineReportContent"></div>
       </div>
+    </div>
+
+    <!-- Monthly Line Report Modal -->
+    <div id="monthlyLineModal" class="modal">
+      <div class="modal-content" style="max-width: 600px">
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+          "
+        >
+          <h3 style="margin: 0">📅 دەرچوونی مانگانەی هێڵەکان</h3>
+          <div style="display: flex; gap: 8px">
+            <button class="btn btn-primary" onclick="printMonthlyLineReport()">
+              🖨️ پڕینت
+            </button>
+            <button
+              class="btn btn-danger"
+              onclick="document.getElementById('monthlyLineModal').style.display = 'none'"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+        <div style="margin-bottom: 20px">
+          <input
+            type="month"
+            id="lineMonthPicker"
+            style="width:100%; margin-bottom:0"
+            onchange="loadMonthlyLineData(this.value)"
+          />
+        </div>
+        <div id="monthlyLineContent"></div>
+      </div>
+    </div>
+
+    <!-- Hidden print area for monthly line report -->
+    <div id="monthly-line-print-area" style="display: none">
+      <div class="print-logo">
+        <img src="logo.jpeg" alt="Sulaymaniyah Terminal" />
+      </div>
+      <div class="print-title">دەرچوونی مانگانەی هێڵەکان - تێرمیناڵی سەرەکی سلێمانی</div>
+      <div id="monthly-line-print-content"></div>
     </div>
 
     <!-- Hidden print area for line report -->

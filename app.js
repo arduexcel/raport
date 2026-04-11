@@ -825,3 +825,109 @@ async function loadMonthlyData(month) {
       </div>
     </div>`;
 }
+
+function openMonthlyLineModal() {
+  const date = document.getElementById("reportDate").value;
+  const monthVal = date ? date.substring(0, 7) : "";
+  document.getElementById("lineMonthPicker").value = monthVal;
+  document.getElementById("monthlyLineContent").innerHTML = "";
+  document.getElementById("monthlyLineModal").style.display = "flex";
+  if (monthVal) loadMonthlyLineData(monthVal);
+}
+
+function printMonthlyLineReport() {
+  const content = document.getElementById("monthlyLineContent").innerHTML;
+  if (!content || content.includes("چاوەڕێ"))
+    return alert("تکایە سەرەتا مانگێک هەڵبژێرە!");
+  const month = document.getElementById("lineMonthPicker").value;
+  document.getElementById("monthly-line-print-content").innerHTML =
+    `<p style="text-align:center;color:#555;margin-bottom:5px;">مانگ: <b>${month}</b></p>` + content;
+  const el = document.getElementById("monthly-line-print-area");
+  document.body.classList.add("report-printing");
+  el.classList.add("is-printing");
+  window.print();
+  el.classList.remove("is-printing");
+  document.body.classList.remove("report-printing");
+}
+
+async function loadMonthlyLineData(month) {
+  const container = document.getElementById("monthlyLineContent");
+  if (!month) {
+    container.innerHTML = "";
+    return;
+  }
+
+  container.innerHTML = '<p style="text-align:center;padding:15px;">⏳ چاوەڕێ بکە...</p>';
+
+  const [year, mon] = month.split("-").map(Number);
+  const daysInMonth = new Date(year, mon, 0).getDate();
+
+  const promises = [];
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${year}-${String(mon).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+    promises.push(
+      db1
+        .collection("Invoices")
+        .doc(dateStr)
+        .collection("AllInvoices")
+        .get()
+        .then((snap) => ({ snap }))
+        .catch(() => ({ snap: null })),
+    );
+  }
+
+  const results = await Promise.all(promises);
+
+  // Aggregate by line
+  const lineMap = {};
+  results.forEach(({ snap }) => {
+    if (!snap) return;
+    snap.forEach((doc) => {
+      const data = doc.data();
+      if (data.status === "deleted" || data.status === "canceled") return;
+      const line = data.line || "نادیار";
+      if (!lineMap[line]) lineMap[line] = { count: 0, total: 0 };
+      lineMap[line].count++;
+      lineMap[line].total += parseInt(data.price) || 0;
+    });
+  });
+
+  const entries = Object.entries(lineMap).sort((a, b) => b[1].total - a[1].total);
+
+  if (entries.length === 0) {
+    container.innerHTML = '<p style="text-align:center;color:gray;padding:10px;">هیچ داتایەک نییە بۆ ئەم مانگە</p>';
+    return;
+  }
+
+  const grandCount = entries.reduce((s, [, d]) => s + d.count, 0);
+  const grandTotal = entries.reduce((s, [, d]) => s + d.total, 0);
+
+  const rows = entries
+    .map(
+      ([line, data]) => `<tr>
+        <td style="font-weight:bold;">${line}</td>
+        <td>${data.count}</td>
+        <td>${data.total.toLocaleString()} IQD</td>
+      </tr>`,
+    )
+    .join("");
+
+  container.innerHTML = `
+    <p style="text-align:center;color:#555;margin-bottom:10px;">مانگ: <b>${month}</b></p>
+    <table>
+      <thead>
+        <tr><th>هێڵ</th><th>ژ.وەسڵ</th><th>کۆی نرخ</th></tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:15px;">
+      <div style="background:var(--primary);color:white;padding:14px;border-radius:10px;text-align:center;">
+        <div style="font-size:13px;opacity:.85;">کۆی وەسڵ</div>
+        <div style="font-size:24px;font-weight:bold;">${grandCount}</div>
+      </div>
+      <div style="background:var(--dark);color:white;padding:15px;border-radius:10px;text-align:center;">
+        <div style="font-size:13px;opacity:.85;">کۆی داهات</div>
+        <div style="font-size:24px;font-weight:bold;">${grandTotal.toLocaleString()} IQD</div>
+      </div>
+    </div>`;
+}

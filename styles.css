@@ -298,7 +298,8 @@ th {
 }
 #daily-print-area .print-logo img,
 #monthly-print-area .print-logo img,
-#line-print-area .print-logo img {
+#line-print-area .print-logo img,
+#monthly-line-print-area .print-logo img {
   width: 250px;
   height: 250px;
   object-fit: contain;
