@@ -1,0 +1,351 @@
+:root {
+  --primary: #2980b9;
+  --danger: #e74c3c;
+  --dark: #2c3e50;
+  --success: #27ae60;
+  --purple: #8e44ad;
+  --audit: #16a085;
+}
+body {
+  font-family: "Segoe UI", Tahoma, sans-serif;
+  background: #f0f3f5;
+  margin: 0;
+  padding: 20px;
+  direction: rtl;
+}
+
+#login-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--dark);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+.login-box {
+  background: white;
+  padding: 35px;
+  border-radius: 15px;
+  width: 320px;
+  text-align: center;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+}
+
+.admin-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  background: white;
+  padding: 25px;
+  border-radius: 15px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  display: none;
+}
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+  border-bottom: 2px solid #eee;
+  padding-bottom: 15px;
+}
+
+input,
+select {
+  padding: 12px;
+  border: 2px solid #eee;
+  border-radius: 10px;
+  width: 100%;
+  box-sizing: border-box;
+  font-size: 15px;
+  margin-bottom: 10px;
+  outline: none;
+}
+
+.btn {
+  padding: 12px 20px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  font-weight: bold;
+  color: white;
+  transition: 0.3s;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.btn-primary {
+  background: var(--primary);
+}
+.btn-dark {
+  background: var(--dark);
+}
+.btn-danger {
+  background: var(--danger);
+}
+.btn-success {
+  background: var(--success);
+}
+.btn-purple {
+  background: var(--purple);
+}
+
+.deleted-row {
+  background-color: #fceaea !important;
+}
+.deleted-row td {
+  text-decoration: line-through;
+  opacity: 0.6;
+  color: #777;
+}
+.deleted-row .reason-cell {
+  text-decoration: none !important;
+  color: var(--danger);
+  font-size: 13px;
+  font-weight: bold;
+  opacity: 1;
+}
+.deleted-row .no-print {
+  text-decoration: none !important;
+  opacity: 1;
+}
+
+.modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  z-index: 1000;
+  justify-content: center;
+  align-items: center;
+  backdrop-filter: blur(5px);
+}
+.modal-content {
+  background: white;
+  padding: 30px;
+  border-radius: 20px;
+  width: 90%;
+  max-width: 800px;
+  max-height: 85vh;
+  overflow-y: auto;
+  position: relative;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+  font-size: 14px;
+}
+th,
+td {
+  border-bottom: 1px solid #eee;
+  padding: 12px;
+  text-align: center;
+}
+th {
+  background: #f8f9fa;
+  color: var(--dark);
+}
+
+.top-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+  margin-bottom: 20px;
+}
+.stat-card {
+  padding: 15px;
+  border-radius: 12px;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+.stat-card.blue {
+  background: var(--primary);
+}
+.stat-card.dark {
+  background: var(--dark);
+}
+.stat-label {
+  font-size: 14px;
+  opacity: 0.9;
+  margin-bottom: 5px;
+}
+.stat-value {
+  font-size: 22px;
+  font-weight: bold;
+}
+
+.summary-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+  margin-top: 25px;
+}
+.stat-box {
+  padding: 20px;
+  border-radius: 12px;
+  color: white;
+  text-align: center;
+}
+.stat-total {
+  background: var(--dark);
+}
+.stat-count {
+  background: var(--primary);
+}
+
+.badge {
+  padding: 4px 8px;
+  border-radius: 4px;
+  color: white;
+  font-size: 12px;
+  font-weight: bold;
+}
+.badge-admin {
+  background: var(--purple);
+}
+.badge-audit {
+  background: var(--audit);
+}
+.badge-acc {
+  background: #f39c12;
+}
+.badge-staff {
+  background: var(--success);
+}
+
+@page {
+  @bottom-center {
+    content: "پەڕەی " counter(page);
+    font-size: 15px;
+    margin-bottom: 50px;
+    color: #555;
+    font-weight: bold;
+    font-family: "Segoe UI", Tahoma, sans-serif;
+  }
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  .admin-container {
+    box-shadow: none;
+    width: 100%;
+    padding: 0;
+  }
+  body.report-printing > *:not(.is-printing) {
+    display: none !important;
+  }
+  body.report-printing .is-printing {
+    display: block !important;
+    direction: rtl;
+    font-family: "Segoe UI", Tahoma, sans-serif;
+  }
+  body.report-printing .is-printing .print-logo {
+    display: block !important;
+  }
+  #monthly-print-area table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+    margin-top: 20px;
+  }
+  #monthly-print-area th,
+  #monthly-print-area td {
+    border: 1px solid #ccc;
+    padding: 10px;
+    text-align: center;
+  }
+  #monthly-print-area th {
+    background: #2c3e50;
+    color: white;
+  }
+  #monthly-print-area .print-total {
+    margin-top: 20px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+  }
+  #monthly-print-area .print-total-box {
+    padding: 14px;
+    border: 2px solid #2c3e50;
+    border-radius: 10px;
+    text-align: center;
+    font-weight: bold;
+    font-size: 16px;
+  }
+}
+
+#daily-print-area {
+  display: none;
+}
+#daily-print-area .print-logo {
+  display: block;
+  text-align: center;
+  margin-bottom: 15px;
+}
+#daily-print-area .print-logo img,
+#monthly-print-area .print-logo img,
+#line-print-area .print-logo img {
+  width: 250px;
+  height: 250px;
+  object-fit: contain;
+  display: block;
+  margin: 0 auto;
+}
+#daily-print-area .print-logo,
+#monthly-print-area .print-logo {
+  text-align: center;
+  margin-bottom: 15px;
+}
+#daily-print-area .print-title,
+#monthly-print-area .print-title {
+  text-align: center;
+  font-size: 28px;
+  font-weight: bold;
+  color: #2c3e50;
+  margin-bottom: 5px;
+}
+#daily-print-area .print-date {
+  text-align: center;
+  color: #555;
+  margin-bottom: 20px;
+  font-size: 14px;
+}
+#daily-print-area table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+#daily-print-area th,
+#daily-print-area td {
+  border: 1px solid #ccc;
+  padding: 10px;
+  text-align: center;
+}
+#daily-print-area th {
+  background: #2c3e50;
+  color: white;
+}
+#daily-print-area .print-total {
+  margin-top: 20px;
+  background: #2c3e50;
+  color: white;
+  padding: 14px;
+  border-radius: 10px;
+  text-align: center;
+  font-size: 18px;
+  font-weight: bold;
+}
