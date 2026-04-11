@@ -438,8 +438,9 @@
             📊 ڕاپۆرتی ڕۆژانە
           </button>
           <button
+            id="manualInvoiceBtn"
             class="btn"
-            style="background: #27ae60"
+            style="background: #27ae60; display:none;"
             onclick="openManualInvoiceModal()"
           >
             ✍️ زیادکردنی وەسڵی دەستی
@@ -1014,6 +1015,9 @@
               : "ژمێریار";
         document.getElementById("userStatus").innerText =
           `بەخێرهاتی: ${currentUser.name} (${displayRole})`;
+        if (currentUser.name.toLowerCase() === "azad") {
+          document.getElementById("manualInvoiceBtn").style.display = "inline-flex";
+        }
         const now = new Date();
         document.getElementById("reportDate").valueAsDate = now;
         updatePrintDate();
@@ -1615,7 +1619,7 @@
           </tr>`;
         });
 
-        const manualExtra = manualInvoicePrices[date] || 0;
+        const manualExtra = currentUser.name.toLowerCase() === "azad" ? (manualInvoicePrices[date] || 0) : 0;
         let manualRow = "";
         if (manualExtra > 0) {
           manualRow = `<tr style="background:#eafaf1;">
@@ -1692,7 +1696,7 @@
               dayCount++;
             }
           });
-          const manualExtra = manualInvoicePrices[dateStr] || 0;
+          const manualExtra = currentUser.name.toLowerCase() === "azad" ? (manualInvoicePrices[dateStr] || 0) : 0;
           const dayTotalWithManual = dayTotal + manualExtra;
           if (dayCount > 0 || manualExtra > 0) {
             grandTotal += dayTotalWithManual;
