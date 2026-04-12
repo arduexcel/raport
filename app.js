@@ -617,13 +617,10 @@ function printDailyReport() {
 }
 
 function openManualInvoiceModal() {
-  const today = new Date();
-  const date =
-    today.getFullYear() +
-    "-" +
-    String(today.getMonth() + 1).padStart(2, "0") +
-    "-" +
-    String(today.getDate()).padStart(2, "0");
+  const date = document.getElementById("reportDate").value || (() => {
+    const today = new Date();
+    return today.getFullYear() + "-" + String(today.getMonth() + 1).padStart(2, "0") + "-" + String(today.getDate()).padStart(2, "0");
+  })();
   const existing = manualInvoicePrices[date] || 0;
   const display = document.getElementById("manualInvoiceCurrentDisplay");
   if (existing > 0) {
@@ -639,13 +636,10 @@ function openManualInvoiceModal() {
 }
 
 async function saveManualInvoice() {
-  const today = new Date();
-  const date =
-    today.getFullYear() +
-    "-" +
-    String(today.getMonth() + 1).padStart(2, "0") +
-    "-" +
-    String(today.getDate()).padStart(2, "0");
+  const date = document.getElementById("reportDate").value || (() => {
+    const today = new Date();
+    return today.getFullYear() + "-" + String(today.getMonth() + 1).padStart(2, "0") + "-" + String(today.getDate()).padStart(2, "0");
+  })();
   const val = parseInt(document.getElementById("manualInvoiceInput").value) || 0;
   manualInvoicePrices[date] = val;
   await db1.collection("ManualInvoices").doc(date).set({ price: val });
