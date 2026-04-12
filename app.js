@@ -617,8 +617,13 @@ function printDailyReport() {
 }
 
 function openManualInvoiceModal() {
-  const date = document.getElementById("reportDate").value;
-  if (!date) return alert("تکایە بەروار هەڵبژێرە!");
+  const today = new Date();
+  const date =
+    today.getFullYear() +
+    "-" +
+    String(today.getMonth() + 1).padStart(2, "0") +
+    "-" +
+    String(today.getDate()).padStart(2, "0");
   const existing = manualInvoicePrices[date] || 0;
   const display = document.getElementById("manualInvoiceCurrentDisplay");
   if (existing > 0) {
@@ -634,7 +639,13 @@ function openManualInvoiceModal() {
 }
 
 async function saveManualInvoice() {
-  const date = document.getElementById("reportDate").value;
+  const today = new Date();
+  const date =
+    today.getFullYear() +
+    "-" +
+    String(today.getMonth() + 1).padStart(2, "0") +
+    "-" +
+    String(today.getDate()).padStart(2, "0");
   const val = parseInt(document.getElementById("manualInvoiceInput").value) || 0;
   manualInvoicePrices[date] = val;
   await db1.collection("ManualInvoices").doc(date).set({ price: val });
@@ -650,6 +661,13 @@ async function saveManualInvoice() {
   setTimeout(() => {
     document.getElementById("manualInvoiceModal").style.display = "none";
   }, 1200);
+}
+
+async function deleteManualInvoice(date) {
+  if (!confirm("دڵنیای لە سڕینەوەی وەسڵی دەستی؟")) return;
+  manualInvoicePrices[date] = 0;
+  await db1.collection("ManualInvoices").doc(date).delete();
+  showDailyReport();
 }
 
 async function loadManualInvoicePrices() {
@@ -720,7 +738,10 @@ function showDailyReport() {
       <td style="font-weight:bold;color:#27ae60;">✍️ زیادکردنی وەسڵی دەستی</td>
       <td>—</td>
       <td>—</td>
-      <td style="color:#27ae60;font-weight:bold;">${manualExtra.toLocaleString()} IQD</td>
+      <td style="color:#27ae60;font-weight:bold;">
+        ${manualExtra.toLocaleString()} IQD
+        <button onclick="deleteManualInvoice('${date}')" style="margin-right:8px;background:#e74c3c;color:#fff;border:none;border-radius:6px;padding:2px 10px;cursor:pointer;font-size:13px;">🗑 سڕینەوە</button>
+      </td>
     </tr>`;
     grandTotal += manualExtra;
   }
