@@ -544,7 +544,7 @@ function showLineReport() {
     const typeHtml = typeEntries
       .map(
         ([type, td]) =>
-          `<span style="display:inline-block;background:#f0f3f5;border-radius:6px;padding:3px 10px;margin:2px;font-size:13px;">${type}: <b>${td.count}</b> | ${td.total.toLocaleString()} IQD</span>`,
+          `<span style="display:inline-block;background:#f0f3f5;border-radius:6px;padding:3px 10px;margin:2px;font-size:13px;">${type}: <b>${td.count}</b></span>`,
       )
       .join("");
 
@@ -552,7 +552,6 @@ function showLineReport() {
       <td style="font-weight:bold;font-size:15px;">${line}</td>
       <td>${data.count}</td>
       <td style="text-align:right;">${typeHtml}</td>
-      <td>${data.total.toLocaleString()} IQD</td>
     </tr>`;
   });
 
@@ -560,18 +559,14 @@ function showLineReport() {
     <p style="text-align:center;color:#555;margin-bottom:15px;">بەروار: <b>${date}</b></p>
     <table>
       <thead>
-        <tr><th>هێڵ</th><th>کۆی وەسڵ</th><th>جۆری ئۆتۆمبێل</th><th>کۆی نرخ</th></tr>
+        <tr><th>هێڵ</th><th>کۆی وەسڵ</th><th>جۆری ئۆتۆمبێل</th></tr>
       </thead>
       <tbody>${rows}</tbody>
     </table>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:20px;">
+    <div style="margin-top:20px;">
       <div style="background:var(--primary);color:white;padding:14px;border-radius:10px;text-align:center;">
         <div style="font-size:13px;opacity:.85;">کۆی وەسڵەکان</div>
         <div style="font-size:24px;font-weight:bold;">${grandCount}</div>
-      </div>
-      <div style="background:var(--dark);color:white;padding:14px;border-radius:10px;text-align:center;">
-        <div style="font-size:13px;opacity:.85;">کۆی گشتی داهات</div>
-        <div style="font-size:24px;font-weight:bold;">${grandTotal.toLocaleString()} IQD</div>
       </div>
     </div>`;
   document.getElementById("lineReportModal").style.display = "flex";
@@ -893,17 +888,23 @@ async function loadMonthlyLineData(month) {
 
   const results = await Promise.all(promises);
 
-  // Aggregate by line
+  // Aggregate by line and type
   const lineMap = {};
+  const allTypes = new Set();
   results.forEach(({ snap }) => {
     if (!snap) return;
     snap.forEach((doc) => {
       const data = doc.data();
       if (data.status === "deleted" || data.status === "canceled") return;
       const line = data.line || "نادیار";
-      if (!lineMap[line]) lineMap[line] = { count: 0, total: 0 };
+      const type = data.type || "نادیار";
+      allTypes.add(type);
+      if (!lineMap[line]) lineMap[line] = { count: 0, total: 0, types: {} };
+      if (!lineMap[line].types[type]) lineMap[line].types[type] = { count: 0, total: 0 };
       lineMap[line].count++;
       lineMap[line].total += parseInt(data.price) || 0;
+      lineMap[line].types[type].count++;
+      lineMap[line].types[type].total += parseInt(data.price) || 0;
     });
   });
 
@@ -914,24 +915,33 @@ async function loadMonthlyLineData(month) {
     return;
   }
 
+  const typeList = Array.from(allTypes).sort();
   const grandCount = entries.reduce((s, [, d]) => s + d.count, 0);
   const grandTotal = entries.reduce((s, [, d]) => s + d.total, 0);
 
+  const typeHeaders = typeList.map(t => `<th>کۆی ${t}</th>`).join("");
+
   const rows = entries
-    .map(
-      ([line, data]) => `<tr>
+    .map(([line, data]) => {
+      const typeCells = typeList.map(t => {
+        const td = data.types[t];
+        return td
+          ? `<td style="font-size:13px;">${td.total.toLocaleString()} IQD<br><span style="color:#888;font-size:11px;">${td.count} وەسڵ</span></td>`
+          : `<td style="color:#ccc;">—</td>`;
+      }).join("");
+      return `<tr>
         <td style="font-weight:bold;">${line}</td>
         <td>${data.count}</td>
-        <td>${data.total.toLocaleString()} IQD</td>
-      </tr>`,
-    )
+        ${typeCells}
+      </tr>`;
+    })
     .join("");
 
   container.innerHTML = `
     <p style="text-align:center;color:#555;margin-bottom:10px;">مانگ: <b>${month}</b></p>
     <table>
       <thead>
-        <tr><th>هێڵ</th><th>ژ.وەسڵ</th><th>کۆی نرخ</th></tr>
+        <tr><th>هێڵ</th><th>ژ.وەسڵ</th>${typeHeaders}</tr>
       </thead>
       <tbody>${rows}</tbody>
     </table>
