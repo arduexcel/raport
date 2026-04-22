@@ -54,7 +54,9 @@
             id="addCarBtn"
             class="btn btn-purple"
             style="display: none"
-            onclick="window.open('https://arduexcel.github.io/data-iin/', '_blank')"
+            onclick="
+              window.open('https://arduexcel.github.io/data-iin/', '_blank')
+            "
           >
             🚗 ئۆتۆمبێلی نوێ
           </button>
@@ -82,7 +84,7 @@
           <button
             id="manualInvoiceBtn"
             class="btn"
-            style="background: #27ae60; display:none;"
+            style="background: #27ae60; display: none"
             onclick="openManualInvoiceModal()"
           >
             ✍️ زیادکردنی وەسڵی دەستی
@@ -133,7 +135,10 @@
           <input
             type="date"
             id="reportDate"
-            onchange="fetchInvoices(); updatePrintDate();"
+            onchange="
+              fetchInvoices();
+              updatePrintDate();
+            "
           />
         </div>
         <div>
@@ -180,11 +185,15 @@
       <div class="summary-container">
         <div class="stat-box stat-count">
           <div style="font-size: 14px; opacity: 0.9">کۆی وەسڵەکان (چالاک)</div>
-          <div id="totalCount" style="font-size: 24px; font-weight: bold">0</div>
+          <div id="totalCount" style="font-size: 24px; font-weight: bold">
+            0
+          </div>
         </div>
         <div class="stat-box stat-total">
           <div style="font-size: 14px; opacity: 0.9">کۆی داهاتی چالاک</div>
-          <div id="totalMoney" style="font-size: 24px; font-weight: bold">0 IQD</div>
+          <div id="totalMoney" style="font-size: 24px; font-weight: bold">
+            0 IQD
+          </div>
         </div>
       </div>
     </div>
@@ -257,7 +266,10 @@
           <h3 style="margin: 0">✍️ زیادکردنی وەسڵی دەستی</h3>
           <button
             class="btn btn-danger"
-            onclick="document.getElementById('manualInvoiceModal').style.display = 'none'"
+            onclick="
+              document.getElementById('manualInvoiceModal').style.display =
+                'none'
+            "
           >
             ✕
           </button>
@@ -297,7 +309,10 @@
         <div style="display: flex; gap: 10px; justify-content: flex-end">
           <button
             class="btn btn-danger"
-            onclick="document.getElementById('manualInvoiceModal').style.display = 'none'"
+            onclick="
+              document.getElementById('manualInvoiceModal').style.display =
+                'none'
+            "
           >
             هەڵوەشاندنەوە
           </button>
@@ -336,7 +351,10 @@
             </button>
             <button
               class="btn btn-danger"
-              onclick="document.getElementById('dailyReportModal').style.display = 'none'"
+              onclick="
+                document.getElementById('dailyReportModal').style.display =
+                  'none'
+              "
             >
               ✕
             </button>
@@ -373,7 +391,10 @@
             </button>
             <button
               class="btn btn-danger"
-              onclick="document.getElementById('monthlyReportModal').style.display = 'none'"
+              onclick="
+                document.getElementById('monthlyReportModal').style.display =
+                  'none'
+              "
             >
               ✕
             </button>
@@ -399,7 +420,9 @@
             />
           </div>
         </div>
-        <hr style="border: none; border-top: 2px dashed #eee; margin: 5px 0 20px" />
+        <hr
+          style="border: none; border-top: 2px dashed #eee; margin: 5px 0 20px"
+        />
         <div
           style="
             background: #f9f9f9;
@@ -449,7 +472,9 @@
                 "
               >
                 <div style="font-size: 13px; opacity: 0.85">کۆی وەسڵەکان</div>
-                <div id="rangeCount" style="font-size: 22px; font-weight: bold">0</div>
+                <div id="rangeCount" style="font-size: 22px; font-weight: bold">
+                  0
+                </div>
               </div>
               <div
                 style="
@@ -461,7 +486,9 @@
                 "
               >
                 <div style="font-size: 13px; opacity: 0.85">کۆی نرخ</div>
-                <div id="rangeTotal" style="font-size: 22px; font-weight: bold">0 IQD</div>
+                <div id="rangeTotal" style="font-size: 22px; font-weight: bold">
+                  0 IQD
+                </div>
               </div>
             </div>
           </div>
@@ -483,7 +510,11 @@
         >
           <h3 style="margin: 0">🗺️ ڕاپۆرتی هێڵەکان</h3>
           <div style="display: flex; gap: 8px">
-            <button class="btn" style="background:#16a085" onclick="openMonthlyLineModal()">
+            <button
+              class="btn"
+              style="background: #16a085"
+              onclick="openMonthlyLineModal()"
+            >
               📅 دەرچوونی مانگانەی هێڵەکان
             </button>
             <button class="btn btn-primary" onclick="printLineReport()">
@@ -491,7 +522,10 @@
             </button>
             <button
               class="btn btn-danger"
-              onclick="document.getElementById('lineReportModal').style.display = 'none'"
+              onclick="
+                document.getElementById('lineReportModal').style.display =
+                  'none'
+              "
             >
               ✕
             </button>
@@ -519,17 +553,20 @@
             </button>
             <button
               class="btn btn-danger"
-              onclick="document.getElementById('monthlyLineModal').style.display = 'none'"
+              onclick="
+                document.getElementById('monthlyLineModal').style.display =
+                  'none'
+              "
             >
               ✕
             </button>
           </div>
         </div>
-        <div style="margin-bottom: 20px">
+        <div style="margin-bottom: 22px">
           <input
             type="month"
             id="lineMonthPicker"
-            style="width:100%; margin-bottom:0"
+            style="width: 100%; margin-bottom: 0"
             onchange="loadMonthlyLineData(this.value)"
           />
         </div>
@@ -542,7 +579,9 @@
       <div class="print-logo">
         <img src="logo.jpeg" alt="Sulaymaniyah Terminal" />
       </div>
-      <div class="print-title">دەرچوونی مانگانەی هێڵەکان - تێرمیناڵی سەرەکی سلێمانی</div>
+      <div class="print-title">
+        دەرچوونی مانگانەی هێڵەکان - تێرمیناڵی سەرەکی سلێمانی
+      </div>
       <div id="monthly-line-print-content"></div>
     </div>
 
