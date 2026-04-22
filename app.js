@@ -253,15 +253,26 @@ async function fetchInvoices() {
 
   document.getElementById("invoiceBody").innerHTML = rowsHtml;
 
-  // FIX: only add manualExtra to the displayed total for azad
+  document.getElementById("totalCount").innerText = count;
+  document.getElementById("totalMoney").innerText = totalMoney.toLocaleString() + " IQD";
+  document.getElementById("topTotalCount").innerText = count;
+  document.getElementById("topTotalMoney").innerText = totalMoney.toLocaleString() + " IQD";
+
   const isAzad = currentUser.name.toLowerCase() === "azad";
   const manualExtra = isAzad ? (manualInvoicePrices[date] || 0) : 0;
-  const displayTotal = totalMoney + manualExtra;
+  const dayTotal = (totalMoney + manualExtra).toLocaleString() + " IQD";
+  const manualStr = manualExtra.toLocaleString() + " IQD";
 
-  document.getElementById("totalCount").innerText = count;
-  document.getElementById("totalMoney").innerText = displayTotal.toLocaleString() + " IQD";
-  document.getElementById("topTotalCount").innerText = count;
-  document.getElementById("topTotalMoney").innerText = displayTotal.toLocaleString() + " IQD";
+  const showManual = isAzad && manualExtra > 0;
+  document.getElementById("manualExtraCard").style.display = showManual ? "" : "none";
+  document.getElementById("dayTotalCard").style.display = showManual ? "" : "none";
+  document.getElementById("topManualExtra").innerText = manualStr;
+  document.getElementById("topDayTotal").innerText = dayTotal;
+
+  document.getElementById("bottomManualExtraCard").style.display = showManual ? "" : "none";
+  document.getElementById("bottomDayTotalCard").style.display = showManual ? "" : "none";
+  document.getElementById("bottomManualExtra").innerText = manualStr;
+  document.getElementById("bottomDayTotal").innerText = dayTotal;
 }
 
 function downloadExcel() {
@@ -656,6 +667,7 @@ async function deleteManualInvoice(date) {
   if (!confirm("دڵنیای لە سڕینەوەی وەسڵی دەستی؟")) return;
   manualInvoicePrices[date] = 0;
   await db1.collection("ManualInvoices").doc(date).delete();
+  fetchInvoices();
   showDailyReport();
 }
 
