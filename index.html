@@ -103,6 +103,14 @@
           >
             🗺️ ڕاپۆرتی هێڵەکان
           </button>
+          <button
+            id="taxiExitBtn"
+            class="btn"
+            style="background: #c0392b; display: none"
+            onclick="showTaxiExitReport()"
+          >
+            🚕 ڕاپۆرتی دەرچوونی تەکسی و پاص
+          </button>
           <button class="btn btn-danger" onclick="logout()">🚪 دەرچوون</button>
         </div>
       </div>
@@ -656,6 +664,60 @@
       </div>
       <div class="print-title">ڕاپۆرتی مانگانەی تێرمیناڵی سەرەکی سلێمانی</div>
       <div id="monthly-print-content"></div>
+    </div>
+
+    <!-- Taxi Exit Report Modal -->
+    <div id="taxiExitModal" class="modal">
+      <div class="modal-content" style="max-width: 700px">
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+          "
+        >
+          <h3 style="margin: 0">🚕 ڕاپۆرتی دەرچوونی تەکسی و پاص</h3>
+          <div style="display: flex; gap: 8px">
+            <button class="btn btn-primary" onclick="printTaxiExitReport()">
+              🖨️ پڕینت
+            </button>
+            <button
+              class="btn btn-danger"
+              onclick="document.getElementById('taxiExitModal').style.display='none'"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+        <div style="margin-bottom: 15px">
+          <input
+            type="month"
+            id="taxiExitMonthPicker"
+            style="width: 100%; margin-bottom: 0"
+            onchange="loadTaxiExitData(this.value)"
+          />
+        </div>
+        <div style="margin-bottom: 20px">
+          <input
+            type="text"
+            id="taxiExitSearch"
+            placeholder="🔍 گەڕان بە ژمارەی ئۆتۆمبێل..."
+            oninput="filterTaxiExitRows(this.value)"
+            style="width: 100%; margin-bottom: 0"
+          />
+        </div>
+        <div id="taxiExitContent"></div>
+      </div>
+    </div>
+
+    <!-- Hidden print area for taxi exit report -->
+    <div id="taxi-exit-print-area" style="display: none">
+      <div class="print-logo">
+        <img src="logo.jpeg" alt="Sulaymaniyah Terminal" />
+      </div>
+      <div class="print-title">ڕاپۆرتی دەرچوونی تەکسی و پاص - تێرمیناڵی سەرەکی سلێمانی</div>
+      <div id="taxi-exit-print-content"></div>
     </div>
 
     <script src="app.js"></script>

@@ -25,7 +25,8 @@ const db2 = app2.firestore();
 let currentUser = null;
 let currentInvoices = [];
 let manualInvoicePrices = {};
-let unsubscribeUsersList = null; // FIX: track onSnapshot unsubscribe to prevent listener leaks
+let unsubscribeUsersList = null;
+let taxiExitEntries = []; // FIX: track onSnapshot unsubscribe to prevent listener leaks
 
 window.onload = function () {
   const savedUser = localStorage.getItem("terminalAdminUser");
@@ -139,6 +140,10 @@ async function startApp() {
   } else {
     document.getElementById("adminOnlyBtn").style.display = "none";
     document.getElementById("addCarBtn").style.display = "none";
+  }
+
+  if (currentUser.role === "audit") {
+    document.getElementById("taxiExitBtn").style.display = "inline-flex";
   }
 
   loadEmployees();
@@ -865,6 +870,113 @@ function printMonthlyLineReport() {
   document.getElementById("monthly-line-print-content").innerHTML =
     `<p style="text-align:center;color:#555;margin-bottom:5px;">مانگ: <b>${month}</b></p>` + content;
   const el = document.getElementById("monthly-line-print-area");
+  document.body.classList.add("report-printing");
+  el.classList.add("is-printing");
+  window.print();
+  el.classList.remove("is-printing");
+  document.body.classList.remove("report-printing");
+}
+
+function showTaxiExitReport() {
+  document.getElementById("taxiExitModal").style.display = "flex";
+  const date = document.getElementById("reportDate").value;
+  const monthVal = date ? date.substring(0, 7) : "";
+  document.getElementById("taxiExitMonthPicker").value = monthVal;
+  document.getElementById("taxiExitContent").innerHTML = "";
+  if (monthVal) loadTaxiExitData(monthVal);
+}
+
+async function loadTaxiExitData(month) {
+  const container = document.getElementById("taxiExitContent");
+  if (!month) { container.innerHTML = ""; return; }
+
+  container.innerHTML = '<p style="text-align:center;padding:15px;">⏳ چاوەڕێ بکە...</p>';
+
+  const [year, mon] = month.split("-").map(Number);
+  const daysInMonth = new Date(year, mon, 0).getDate();
+
+  const promises = [];
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${year}-${String(mon).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+    promises.push(
+      db1.collection("Invoices").doc(dateStr).collection("AllInvoices").get()
+        .then((snap) => ({ snap }))
+        .catch(() => ({ snap: null })),
+    );
+  }
+
+  const results = await Promise.all(promises);
+
+  const carLineMap = {};
+  results.forEach(({ snap }) => {
+    if (!snap) return;
+    snap.forEach((doc) => {
+      const data = doc.data();
+      if (data.status === "deleted" || data.status === "canceled") return;
+      const carNum = data.carNumber || "نادیار";
+      const type = data.type || "نادیار";
+      const line = data.line || "نادیار";
+      const key = `${carNum}||${line}`;
+      if (!carLineMap[key]) carLineMap[key] = { carNum, type, line, count: 0 };
+      carLineMap[key].count++;
+    });
+  });
+
+  taxiExitEntries = Object.values(carLineMap)
+    .filter((d) => d.count > 1)
+    .sort((a, b) => b.count - a.count);
+
+  document.getElementById("taxiExitSearch").value = "";
+
+  if (taxiExitEntries.length === 0) {
+    container.innerHTML = '<p style="text-align:center;color:gray;padding:10px;">هیچ ئۆتۆمبێلێکی دووبارە نییە بۆ ئەم مانگە</p>';
+    return;
+  }
+
+  container.innerHTML = `
+    <p style="text-align:center;color:#555;margin-bottom:10px;">مانگ: <b>${month}</b></p>
+    <table>
+      <thead>
+        <tr><th>#</th><th>ژمارەی ئۆتۆمبێل</th><th>جۆری ئۆتۆمبێل</th><th>هێڵ</th><th>ژمارەی دەرچوون</th></tr>
+      </thead>
+      <tbody id="taxiExitTableBody"></tbody>
+    </table>
+    <div style="margin-top:15px;background:#c0392b;color:white;padding:14px;border-radius:10px;text-align:center;">
+      <div style="font-size:13px;opacity:.85;">کۆی تەکسی دووبارەدەرچووە</div>
+      <div style="font-size:24px;font-weight:bold;">${new Set(taxiExitEntries.map(d => d.carNum)).size}</div>
+    </div>`;
+
+  renderTaxiExitRows(taxiExitEntries);
+}
+
+function renderTaxiExitRows(list) {
+  const tbody = document.getElementById("taxiExitTableBody");
+  if (!tbody) return;
+  tbody.innerHTML = list.map((data, i) =>
+    `<tr>
+      <td style="text-align:center;">${i + 1}</td>
+      <td style="font-weight:bold;font-size:15px;">${data.carNum}</td>
+      <td>${data.type}</td>
+      <td>${data.line}</td>
+      <td style="text-align:center;font-weight:bold;color:#c0392b;font-size:16px;">${data.count}</td>
+    </tr>`
+  ).join("");
+}
+
+function filterTaxiExitRows(query) {
+  const q = query.trim();
+  const filtered = q
+    ? taxiExitEntries.filter(d => d.carNum.includes(q))
+    : taxiExitEntries;
+  renderTaxiExitRows(filtered);
+}
+
+function printTaxiExitReport() {
+  const content = document.getElementById("taxiExitContent").innerHTML;
+  if (!content || content.includes("چاوەڕێ"))
+    return alert("تکایە سەرەتا مانگێک هەڵبژێرە!");
+  document.getElementById("taxi-exit-print-content").innerHTML = content;
+  const el = document.getElementById("taxi-exit-print-area");
   document.body.classList.add("report-printing");
   el.classList.add("is-printing");
   window.print();
