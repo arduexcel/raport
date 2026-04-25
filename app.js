@@ -144,6 +144,7 @@ async function startApp() {
 
   if (currentUser.role === "audit") {
     document.getElementById("taxiExitBtn").style.display = "inline-flex";
+    document.getElementById("dailyTaxiExitBtn").style.display = "inline-flex";
   }
 
   loadEmployees();
@@ -986,6 +987,116 @@ function printTaxiExitReport() {
     return alert("تکایە سەرەتا مانگێک هەڵبژێرە!");
   document.getElementById("taxi-exit-print-content").innerHTML = content;
   const el = document.getElementById("taxi-exit-print-area");
+  document.body.classList.add("report-printing");
+  el.classList.add("is-printing");
+  window.print();
+  el.classList.remove("is-printing");
+  document.body.classList.remove("report-printing");
+}
+
+let dailyTaxiExitEntries = [];
+
+function showDailyTaxiExitReport() {
+  document.getElementById("dailyTaxiExitModal").style.display = "flex";
+  const date = document.getElementById("reportDate").value;
+  document.getElementById("dailyTaxiExitDatePicker").value = date || "";
+  document.getElementById("dailyTaxiExitSearch").value = "";
+  document.getElementById("dailyTaxiExitContent").innerHTML = "";
+  if (date) loadDailyTaxiExitData(date);
+}
+
+async function loadDailyTaxiExitData(date) {
+  const container = document.getElementById("dailyTaxiExitContent");
+  if (!date) { container.innerHTML = ""; return; }
+
+  container.innerHTML = '<p style="text-align:center;padding:15px;">⏳ چاوەڕێ بکە...</p>';
+
+  const snap = await db1
+    .collection("Invoices").doc(date).collection("AllInvoices").get()
+    .catch(() => null);
+
+  const carLineMap = {};
+  if (snap) {
+    snap.forEach((doc) => {
+      const data = doc.data();
+      if (data.status === "deleted" || data.status === "canceled") return;
+      const carNum = data.carNumber || "نادیار";
+      const type = data.type || "نادیار";
+      const line = data.line || "پارکینگ";
+      const key = `${carNum}||${line}`;
+      if (!carLineMap[key]) carLineMap[key] = { carNum, type, line, count: 0 };
+      carLineMap[key].count++;
+    });
+  }
+
+  dailyTaxiExitEntries = Object.values(carLineMap)
+    .sort((a, b) => b.count - a.count);
+
+  document.getElementById("dailyTaxiExitSearch").value = "";
+
+  if (dailyTaxiExitEntries.length === 0) {
+    container.innerHTML = '<p style="text-align:center;color:gray;padding:10px;">هیچ داتایەک نییە بۆ ئەم ڕۆژە</p>';
+    return;
+  }
+
+  const duplicateCount = dailyTaxiExitEntries.filter(d => d.count > 1).length;
+  const totalCount = dailyTaxiExitEntries.length;
+
+  container.innerHTML = `
+    <p style="text-align:center;color:#555;margin-bottom:10px;">بەروار: <b>${date}</b></p>
+    <table>
+      <thead>
+        <tr><th>#</th><th>ژمارەی ئۆتۆمبێل</th><th>جۆری ئۆتۆمبێل</th><th>هێڵ</th><th>ژمارەی دەرچوون</th></tr>
+      </thead>
+      <tbody id="dailyTaxiExitTableBody"></tbody>
+    </table>
+    <div style="margin-top:15px;display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div style="background:#922b21;color:white;padding:14px;border-radius:10px;text-align:center;">
+        <div style="font-size:13px;opacity:.85;">ئۆتۆمبێلی دووبارەدەرچووە</div>
+        <div style="font-size:24px;font-weight:bold;">${duplicateCount}</div>
+      </div>
+      <div style="background:#2c3e50;color:white;padding:14px;border-radius:10px;text-align:center;">
+        <div style="font-size:13px;opacity:.85;">کۆی ئۆتۆمبێلەکان</div>
+        <div style="font-size:24px;font-weight:bold;">${totalCount}</div>
+      </div>
+    </div>`;
+
+  renderDailyTaxiExitRows(dailyTaxiExitEntries);
+}
+
+function renderDailyTaxiExitRows(list) {
+  const tbody = document.getElementById("dailyTaxiExitTableBody");
+  if (!tbody) return;
+  tbody.innerHTML = list.map((data, i) => {
+    const isDup = data.count > 1;
+    const countStyle = isDup
+      ? "color:#922b21;font-weight:bold;font-size:16px;"
+      : "color:#7f8c8d;font-size:15px;";
+    const rowStyle = isDup ? "" : "opacity:0.7;";
+    return `<tr style="${rowStyle}">
+      <td style="text-align:center;">${i + 1}</td>
+      <td style="font-weight:bold;font-size:15px;">${data.carNum}</td>
+      <td>${data.type}</td>
+      <td>${data.line}</td>
+      <td style="text-align:center;${countStyle}">${data.count}</td>
+    </tr>`;
+  }).join("");
+}
+
+function filterDailyTaxiExitRows(query) {
+  const q = query.trim();
+  const filtered = q
+    ? dailyTaxiExitEntries.filter(d => d.carNum.includes(q))
+    : dailyTaxiExitEntries;
+  renderDailyTaxiExitRows(filtered);
+}
+
+function printDailyTaxiExitReport() {
+  const content = document.getElementById("dailyTaxiExitContent").innerHTML;
+  if (!content || content.includes("چاوەڕێ"))
+    return alert("تکایە سەرەتا بەروارێک هەڵبژێرە!");
+  document.getElementById("daily-taxi-exit-print-content").innerHTML = content;
+  const el = document.getElementById("daily-taxi-exit-print-area");
   document.body.classList.add("report-printing");
   el.classList.add("is-printing");
   window.print();
