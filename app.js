@@ -529,7 +529,7 @@ function showLineReport() {
   const lineMap = {};
   currentInvoices.forEach((inv) => {
     if (inv.status === "deleted" || inv.status === "canceled") return;
-    const line = inv.line || "نادیار";
+    const line = inv.line || "پارکینگ";
     const type = inv.type || "نادیار";
     if (!lineMap[line]) lineMap[line] = { types: {}, total: 0, count: 0 };
     if (!lineMap[line].types[type]) lineMap[line].types[type] = { count: 0, total: 0 };
@@ -551,10 +551,12 @@ function showLineReport() {
   let rows = "";
   let grandTotal = 0;
   let grandCount = 0;
+  let parkingCount = 0;
 
   entries.forEach(([line, data]) => {
     grandTotal += data.total;
     grandCount += data.count;
+    if (line === "پارکینگ") parkingCount = data.count;
 
     const typeEntries = Object.entries(data.types).sort((a, b) => b[1].count - a[1].count);
     const typeHtml = typeEntries
@@ -564,12 +566,18 @@ function showLineReport() {
       )
       .join("");
 
-    rows += `<tr>
+    rows += `<tr${line === "پارکینگ" ? ' style="background:#f5eef8;"' : ""}>
       <td style="font-weight:bold;font-size:15px;">${line}</td>
       <td>${data.count}</td>
       <td style="text-align:right;">${typeHtml}</td>
     </tr>`;
   });
+
+  const parkingCard = parkingCount > 0 ? `
+    <div style="background:#8e44ad;color:white;padding:14px;border-radius:10px;text-align:center;">
+      <div style="font-size:13px;opacity:.85;">کۆی پارکینگ</div>
+      <div style="font-size:24px;font-weight:bold;">${parkingCount}</div>
+    </div>` : "";
 
   document.getElementById("lineReportContent").innerHTML = `
     <p style="text-align:center;color:#555;margin-bottom:15px;">بەروار: <b>${date}</b></p>
@@ -579,11 +587,12 @@ function showLineReport() {
       </thead>
       <tbody>${rows}</tbody>
     </table>
-    <div style="margin-top:20px;">
+    <div style="margin-top:20px;display:grid;grid-template-columns:${parkingCount > 0 ? "1fr 1fr" : "1fr"};gap:12px;">
       <div style="background:var(--primary);color:white;padding:14px;border-radius:10px;text-align:center;">
         <div style="font-size:13px;opacity:.85;">کۆی وەسڵەکان</div>
         <div style="font-size:24px;font-weight:bold;">${grandCount}</div>
       </div>
+      ${parkingCard}
     </div>`;
   document.getElementById("lineReportModal").style.display = "flex";
 }
@@ -915,7 +924,7 @@ async function loadTaxiExitData(month) {
       if (data.status === "deleted" || data.status === "canceled") return;
       const carNum = data.carNumber || "نادیار";
       const type = data.type || "نادیار";
-      const line = data.line || "نادیار";
+      const line = data.line || "پارکینگ";
       const key = `${carNum}||${line}`;
       if (!carLineMap[key]) carLineMap[key] = { carNum, type, line, count: 0 };
       carLineMap[key].count++;
@@ -1020,7 +1029,7 @@ async function loadMonthlyLineData(month) {
     snap.forEach((doc) => {
       const data = doc.data();
       if (data.status === "deleted" || data.status === "canceled") return;
-      const line = data.line || "نادیار";
+      const line = data.line || "پارکینگ";
       const type = data.type || "نادیار";
       allTypes.add(type);
       if (!lineMap[line]) lineMap[line] = { count: 0, total: 0, types: {} };
