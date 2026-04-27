@@ -119,6 +119,13 @@
           >
             🚕 ڕاپۆرتی دەرچوونی مانگانەی تەکسی و پاص
           </button>
+          <button
+            class="btn"
+            style="background: #1a5276"
+            onclick="showCombinedMonthlyReport()"
+          >
+            📊 کۆی داهاتی مانگانەی وەسڵی دەستی و پسووڵەکان
+          </button>
           <button class="btn btn-danger" onclick="logout()">🚪 دەرچوون</button>
         </div>
       </div>
@@ -891,6 +898,57 @@
           <button class="btn btn-success" onclick="saveUpdateInvoice()">تۆمارکردن</button>
         </div>
       </div>
+    </div>
+
+    <!-- Combined Monthly Report Modal -->
+    <div id="combinedMonthlyModal" class="modal">
+      <div class="modal-content" style="max-width: 700px">
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+          "
+        >
+          <h3 style="margin: 0">📊 کۆی داهاتی مانگانەی وەسڵی دەستی و پسووڵەکان</h3>
+          <div style="display: flex; gap: 8px">
+            <button class="btn btn-primary" onclick="printCombinedMonthlyReport()">
+              🖨️ پڕینت
+            </button>
+            <button
+              class="btn btn-danger"
+              onclick="document.getElementById('combinedMonthlyModal').style.display='none'"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+        <div style="margin-bottom: 20px">
+          <label style="font-weight: bold; display: block; margin-bottom: 8px"
+            >مانگ هەڵبژێرە:</label
+          >
+          <input
+            type="month"
+            id="combinedMonthPicker"
+            style="width: 100%; margin-bottom: 0"
+            onchange="loadCombinedMonthlyData(this.value)"
+          />
+        </div>
+        <hr style="border: none; border-top: 2px dashed #eee; margin: 5px 0 20px" />
+        <div id="combinedMonthlyContent"></div>
+      </div>
+    </div>
+
+    <!-- Hidden print area for combined monthly report -->
+    <div id="combined-monthly-print-area" style="display: none">
+      <div class="print-logo">
+        <img src="logo.jpeg" alt="Sulaymaniyah Terminal" />
+      </div>
+      <div class="print-title">
+        کۆی داهاتی مانگانەی وەسڵی دەستی و پسووڵەکان - تێرمیناڵی سەرەکی سلێمانی
+      </div>
+      <div id="combined-monthly-print-content"></div>
     </div>
 
     <script src="app.js"></script>

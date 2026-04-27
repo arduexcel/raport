@@ -1293,3 +1293,130 @@ async function loadMonthlyLineData(month) {
       </div>
     </div>`;
 }
+
+function showCombinedMonthlyReport() {
+  document.getElementById("combinedMonthlyModal").style.display = "flex";
+  const date = document.getElementById("reportDate").value;
+  if (date) {
+    const monthVal = date.substring(0, 7);
+    document.getElementById("combinedMonthPicker").value = monthVal;
+    loadCombinedMonthlyData(monthVal);
+  } else {
+    document.getElementById("combinedMonthlyContent").innerHTML = "";
+  }
+}
+
+async function loadCombinedMonthlyData(month) {
+  if (!month) return;
+  document.getElementById("combinedMonthlyContent").innerHTML =
+    '<p style="text-align:center;padding:20px;">⏳ چاوەڕێ بکە...</p>';
+
+  const [year, mon] = month.split("-").map(Number);
+  const daysInMonth = new Date(year, mon, 0).getDate();
+
+  const invoicePromises = [];
+  const manualPromises = [];
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${year}-${String(mon).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+    invoicePromises.push(
+      db1.collection("Invoices").doc(dateStr).collection("AllInvoices").get()
+        .then((snap) => ({ dateStr, snap }))
+        .catch(() => ({ dateStr, snap: null }))
+    );
+    manualPromises.push(
+      db1.collection("ManualInvoices").doc(dateStr).get()
+        .then((doc) => ({ dateStr, price: doc.exists ? (doc.data().price || 0) : 0 }))
+        .catch(() => ({ dateStr, price: 0 }))
+    );
+  }
+
+  const [invoiceResults, manualResults] = await Promise.all([
+    Promise.all(invoicePromises),
+    Promise.all(manualPromises),
+  ]);
+
+  const manualByDate = {};
+  manualResults.forEach(({ dateStr, price }) => {
+    manualByDate[dateStr] = price;
+  });
+
+  let rows = "";
+  let grandManual = 0;
+  let grandMonthly = 0;
+
+  invoiceResults.forEach(({ dateStr, snap }) => {
+    let dayTotal = 0;
+    if (snap) {
+      snap.forEach((doc) => {
+        const data = doc.data();
+        if (data.status !== "deleted" && data.status !== "canceled") {
+          dayTotal += parseInt(data.price) || 0;
+        }
+      });
+    }
+    const manualPrice = manualByDate[dateStr] || 0;
+    if (dayTotal === 0 && manualPrice === 0) return;
+
+    grandManual += manualPrice;
+    grandMonthly += dayTotal;
+    const total = dayTotal + manualPrice;
+
+    rows += `<tr>
+      <td><b>${dateStr}</b></td>
+      <td style="color:#27ae60;font-weight:bold;">${manualPrice > 0 ? manualPrice.toLocaleString() + " IQD" : "—"}</td>
+      <td style="color:#2471a3;font-weight:bold;">${dayTotal > 0 ? dayTotal.toLocaleString() + " IQD" : "—"}</td>
+      <td style="font-weight:bold;">${total.toLocaleString()} IQD</td>
+    </tr>`;
+  });
+
+  if (!rows) {
+    document.getElementById("combinedMonthlyContent").innerHTML =
+      '<p style="text-align:center;color:gray;">هیچ داتایەک نییە بۆ ئەم مانگە</p>';
+    return;
+  }
+
+  const grandTotal = grandManual + grandMonthly;
+
+  document.getElementById("combinedMonthlyContent").innerHTML = `
+    <table>
+      <thead>
+        <tr>
+          <th>بەروار</th>
+          <th>نرخی وەسڵی دەستی</th>
+          <th>نرخی مانگانەی پسووڵەکان</th>
+          <th>کۆی گشتی</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:20px;">
+      <div style="background:#eafaf1;border:2px solid #27ae60;padding:15px;border-radius:10px;text-align:center;">
+        <div style="font-size:13px;color:#1e8449;font-weight:600;">کۆی وەسڵی دەستی</div>
+        <div style="font-size:22px;font-weight:bold;color:#27ae60;">${grandManual.toLocaleString()} IQD</div>
+      </div>
+      <div style="background:#eaf4fb;border:2px solid #2471a3;padding:15px;border-radius:10px;text-align:center;">
+        <div style="font-size:13px;color:#1a5276;font-weight:600;">کۆی پسووڵەکان</div>
+        <div style="font-size:22px;font-weight:bold;color:#2471a3;">${grandMonthly.toLocaleString()} IQD</div>
+      </div>
+      <div style="background:#fef9e7;border:2px solid #d4ac0d;padding:15px;border-radius:10px;text-align:center;">
+        <div style="font-size:13px;color:#9a7d0a;font-weight:600;">کۆی گشتی</div>
+        <div style="font-size:22px;font-weight:bold;color:#d4ac0d;">${grandTotal.toLocaleString()} IQD</div>
+      </div>
+    </div>`;
+}
+
+function printCombinedMonthlyReport() {
+  const content = document.getElementById("combinedMonthlyContent").innerHTML;
+  if (!content || content.includes("چاوەڕێ"))
+    return alert("تکایە سەرەتا مانگێک هەڵبژێرە!");
+  const month = document.getElementById("combinedMonthPicker").value;
+  document.getElementById("combined-monthly-print-content").innerHTML =
+    `<p style="text-align:center;color:#555;margin-bottom:5px;">مانگ: <b>${month}</b></p>` + content;
+  const el = document.getElementById("combined-monthly-print-area");
+  document.body.classList.add("report-printing");
+  el.classList.add("is-printing");
+  window.print();
+  el.classList.remove("is-printing");
+  document.body.classList.remove("report-printing");
+}
