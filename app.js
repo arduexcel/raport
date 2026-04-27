@@ -230,7 +230,10 @@ async function fetchInvoices() {
         }
       } else {
         if (currentUser.role === "admin" || currentUser.role === "audit") {
-          actionBtn = `<button class="btn btn-danger no-print" style="padding:5px 10px;font-size:12px;" onclick="softDeleteInvoice('${invId}','${inv.carNumber}','${date}')">سڕینەوە</button>`;
+          const encNote = encodeURIComponent(inv.note || "");
+          actionBtn = `
+            <button class="btn btn-primary no-print" style="padding:5px 10px;font-size:12px;margin-left:4px;" onclick="openUpdateInvoice('${invId}','${date}','${inv.carNumber || ""}','${inv.type || ""}','${inv.line || ""}',${parseInt(inv.price)||0},'${encNote}')">نوێکردنەوە</button>
+            <button class="btn btn-danger no-print" style="padding:5px 10px;font-size:12px;" onclick="softDeleteInvoice('${invId}','${inv.carNumber}','${date}')">سڕینەوە</button>`;
         }
       }
 
@@ -699,6 +702,44 @@ async function deleteManualInvoice(date) {
   await db1.collection("ManualInvoices").doc(date).delete();
   fetchInvoices();
   showDailyReport();
+}
+
+function openUpdateInvoice(id, date, carNumber, type, line, price, encodedNote) {
+  const note = decodeURIComponent(encodedNote);
+  document.getElementById("updateInvId").value = id;
+  document.getElementById("updateInvDate").value = date;
+  document.getElementById("updateCarNumber").value = carNumber;
+  document.getElementById("updateType").value = type;
+  document.getElementById("updateLine").value = line;
+  document.getElementById("updatePrice").value = price;
+  document.getElementById("updateNote").value = note;
+  document.getElementById("updateInvoiceModal").style.display = "flex";
+}
+
+async function saveUpdateInvoice() {
+  const id = document.getElementById("updateInvId").value;
+  const date = document.getElementById("updateInvDate").value;
+  const carNumber = document.getElementById("updateCarNumber").value.trim();
+  const type = document.getElementById("updateType").value.trim();
+  const line = document.getElementById("updateLine").value;
+  const price = parseInt(document.getElementById("updatePrice").value) || 0;
+  const note = document.getElementById("updateNote").value.trim();
+
+  if (!carNumber || !line || !price) {
+    alert("تکایە خانەکانی پێویست پڕ بکەرەوە");
+    return;
+  }
+
+  const updates = { carNumber, type, line, price, note };
+
+  try {
+    await db1.collection("Invoices").doc(date).collection("AllInvoices").doc(id).update(updates);
+    await db2.collection("Invoices").doc(date).collection("AllInvoices").doc(id).update(updates);
+    document.getElementById("updateInvoiceModal").style.display = "none";
+    fetchInvoices();
+  } catch (e) {
+    alert("هەڵە لە نوێکردنەوە");
+  }
 }
 
 async function loadManualInvoicePrices() {
