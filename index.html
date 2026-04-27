@@ -335,15 +335,20 @@
           "
         >
           <h3 style="margin: 0">✍️ زیادکردنی وەسڵی دەستی</h3>
-          <button
-            class="btn btn-danger"
-            onclick="
-              document.getElementById('manualInvoiceModal').style.display =
-                'none'
-            "
-          >
-            ✕
-          </button>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-primary" onclick="showManualMonthlyReport()">
+              📅 مانگانەی وەسڵی دەستی
+            </button>
+            <button
+              class="btn btn-danger"
+              onclick="
+                document.getElementById('manualInvoiceModal').style.display =
+                  'none'
+              "
+            >
+              ✕
+            </button>
+          </div>
         </div>
         <div
           id="manualInvoiceCurrentDisplay"
@@ -401,6 +406,46 @@
             display: none;
           "
         ></div>
+      </div>
+    </div>
+
+    <!-- Manual Invoice Monthly Report Modal -->
+    <div id="manualMonthlyModal" class="modal">
+      <div class="modal-content" style="max-width: 500px">
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+          "
+        >
+          <h3 style="margin: 0">📅 مانگانەی وەسڵی دەستی</h3>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-primary" onclick="printManualMonthlyReport()">
+              🖨️ پڕینت
+            </button>
+            <button
+              class="btn btn-danger"
+              onclick="document.getElementById('manualMonthlyModal').style.display='none'"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+        <div style="margin-bottom: 20px">
+          <label style="font-weight: bold; display: block; margin-bottom: 8px"
+            >مانگ هەڵبژێرە:</label
+          >
+          <input
+            type="month"
+            id="manualMonthPicker"
+            style="width: 100%; margin-bottom: 0"
+            onchange="loadManualMonthlyData(this.value)"
+          />
+        </div>
+        <hr style="border: none; border-top: 2px dashed #eee; margin: 5px 0 20px" />
+        <div id="manualMonthlyContent"></div>
       </div>
     </div>
 
@@ -672,6 +717,14 @@
       </div>
       <div class="print-title">ڕاپۆرتی مانگانەی تێرمیناڵی سەرەکی سلێمانی</div>
       <div id="monthly-print-content"></div>
+    </div>
+
+    <div id="manual-monthly-print-area" style="display: none">
+      <div class="print-logo">
+        <img src="logo.jpeg" alt="Sulaymaniyah Terminal" />
+      </div>
+      <div class="print-title">مانگانەی وەسڵی دەستی - تێرمیناڵی سەرەکی سلێمانی</div>
+      <div id="manual-monthly-print-content"></div>
     </div>
 
     <!-- Taxi Exit Report Modal -->

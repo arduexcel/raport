@@ -381,6 +381,16 @@ th {
   display: block;
   margin: 0 auto;
 }
+#manual-monthly-print-area .print-logo img {
+  width: 300px;
+  height: 300px;
+  object-fit: contain;
+  display: block;
+  margin: 0 auto;
+}
+#manual-monthly-print-area * {
+  color: black !important;
+}
 #daily-print-area .print-logo,
 #monthly-print-area .print-logo {
   text-align: center;

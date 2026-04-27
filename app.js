@@ -625,6 +625,21 @@ function printMonthlyReport() {
   document.body.classList.remove("report-printing");
 }
 
+function printManualMonthlyReport() {
+  const content = document.getElementById("manualMonthlyContent").innerHTML;
+  if (!content || content.includes("چاوەڕێ"))
+    return alert("تکایە سەرەتا مانگێک هەڵبژێرە!");
+  const month = document.getElementById("manualMonthPicker").value;
+  document.getElementById("manual-monthly-print-content").innerHTML =
+    `<p style="text-align:center;color:#555;margin-bottom:5px;">مانگ: <b>${month}</b></p>` + content;
+  const el = document.getElementById("manual-monthly-print-area");
+  document.body.classList.add("report-printing");
+  el.classList.add("is-printing");
+  window.print();
+  el.classList.remove("is-printing");
+  document.body.classList.remove("report-printing");
+}
+
 function printDailyReport() {
   const content = document.getElementById("dailyReportContent").innerHTML;
   if (!content) return alert("هیچ داتایەک نییە!");
@@ -693,6 +708,64 @@ async function loadManualInvoicePrices() {
   });
 }
 
+function showManualMonthlyReport() {
+  document.getElementById("manualInvoiceModal").style.display = "none";
+  const date = document.getElementById("reportDate").value;
+  const monthVal = date ? date.substring(0, 7) : "";
+  document.getElementById("manualMonthPicker").value = monthVal;
+  document.getElementById("manualMonthlyModal").style.display = "flex";
+  if (monthVal) loadManualMonthlyData(monthVal);
+}
+
+async function loadManualMonthlyData(month) {
+  if (!month) return;
+  document.getElementById("manualMonthlyContent").innerHTML =
+    '<p style="text-align:center;padding:20px;">⏳ چاوەڕێ بکە...</p>';
+
+  const [year, mon] = month.split("-").map(Number);
+  const daysInMonth = new Date(year, mon, 0).getDate();
+
+  const promises = [];
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${year}-${String(mon).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+    promises.push(
+      db1.collection("ManualInvoices").doc(dateStr).get()
+        .then((doc) => ({ dateStr, price: doc.exists ? (doc.data().price || 0) : 0 }))
+        .catch(() => ({ dateStr, price: 0 }))
+    );
+  }
+
+  const results = await Promise.all(promises);
+  let rows = "";
+  let grandTotal = 0;
+
+  results.forEach(({ dateStr, price }) => {
+    if (price > 0) {
+      grandTotal += price;
+      rows += `<tr>
+        <td><b>${dateStr}</b></td>
+        <td style="color:#27ae60;font-weight:bold;">${price.toLocaleString()} IQD</td>
+      </tr>`;
+    }
+  });
+
+  if (!rows) {
+    document.getElementById("manualMonthlyContent").innerHTML =
+      '<p style="text-align:center;color:gray;">هیچ وەسڵی دەستی نییە بۆ ئەم مانگە</p>';
+    return;
+  }
+
+  document.getElementById("manualMonthlyContent").innerHTML = `
+    <table>
+      <thead><tr><th>بەروار</th><th>نرخی وەسڵی دەستی</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <div style="background:#27ae60;color:white;padding:15px;border-radius:10px;text-align:center;margin-top:20px;">
+      <div style="font-size:14px;opacity:.85;">کۆی گشتی وەسڵی دەستی</div>
+      <div style="font-size:24px;font-weight:bold;">${grandTotal.toLocaleString()} IQD</div>
+    </div>`;
+}
+
 function showDailyReport() {
   const date = document.getElementById("reportDate").value;
   if (!date) return alert("تکایە بەروار هەڵبژێرە!");
@@ -744,29 +817,11 @@ function showDailyReport() {
     </tr>`;
   });
 
-  const manualExtra =
-    currentUser.name.toLowerCase() === "azad"
-      ? manualInvoicePrices[date] || 0
-      : 0;
-  let manualRow = "";
-  if (manualExtra > 0) {
-    manualRow = `<tr style="background:#eafaf1;">
-      <td style="font-weight:bold;color:#27ae60;">✍️ زیادکردنی وەسڵی دەستی</td>
-      <td>—</td>
-      <td>—</td>
-      <td style="color:#27ae60;font-weight:bold;">
-        ${manualExtra.toLocaleString()} IQD
-        <button onclick="deleteManualInvoice('${date}')" style="margin-right:8px;background:#e74c3c;color:#fff;border:none;border-radius:6px;padding:2px 10px;cursor:pointer;font-size:13px;">🗑 سڕینەوە</button>
-      </td>
-    </tr>`;
-    grandTotal += manualExtra;
-  }
-
   document.getElementById("dailyReportContent").innerHTML = `
     <p style="text-align:center;color:#555;margin-bottom:15px;">بەروار: <b>${date}</b></p>
     <table>
       <thead><tr><th>ناوی کارمەند</th><th>کات</th><th>ژ.وەسڵ (لە - بۆ)</th><th>کۆی نرخ</th></tr></thead>
-      <tbody>${rows}${manualRow}</tbody>
+      <tbody>${rows}</tbody>
     </table>
     <div style="background:var(--dark);color:white;padding:15px;border-radius:10px;text-align:center;margin-top:20px;">
       <div style="font-size:14px;opacity:.85;">کۆی گشتی داهات</div>
@@ -810,7 +865,6 @@ async function loadMonthlyData(month) {
   }
 
   const results = await Promise.all(promises);
-  const isAzad = currentUser.name.toLowerCase() === "azad";
 
   let rows = "";
   let grandTotal = 0;
@@ -827,15 +881,13 @@ async function loadMonthlyData(month) {
         dayCount++;
       }
     });
-    const manualExtra = isAzad ? (manualInvoicePrices[dateStr] || 0) : 0;
-    const dayTotalWithManual = dayTotal + manualExtra;
-    if (dayCount > 0 || manualExtra > 0) {
-      grandTotal += dayTotalWithManual;
+    if (dayCount > 0) {
+      grandTotal += dayTotal;
       grandCount += dayCount;
       rows += `<tr>
         <td><b>${dateStr}</b></td>
         <td>${dayCount}</td>
-        <td>${dayTotalWithManual.toLocaleString()} IQD${manualExtra > 0 ? ` <span style="color:#27ae60;font-size:12px;">(+${manualExtra.toLocaleString()} دەستی)</span>` : ""}</td>
+        <td>${dayTotal.toLocaleString()} IQD</td>
       </tr>`;
     }
   });
