@@ -1516,7 +1516,7 @@ async function loadCombinedMonthlyData(month) {
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;margin-top:150px;text-align:center;">
       <div>
-        <h1 style="font-size:18px;font-weight:bold;margin:0 0 6px;">محدم نوزاد ابراهیم</h1>
+        <h1 style="font-size:18px;font-weight:bold;margin:0 0 6px;">محمد نوزاد ابراهیم</h1>
         <h1 style="font-size:16px;font-weight:normal;margin:0;color:#555;">ووردبین</h1>
       </div>
       <div>
