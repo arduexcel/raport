@@ -342,7 +342,7 @@
           "
         >
           <h3 style="margin: 0">✍️ زیادکردنی وەسڵی دەستی</h3>
-          <div style="display:flex;gap:8px;">
+          <div style="display: flex; gap: 8px">
             <button class="btn btn-primary" onclick="showManualMonthlyReport()">
               📅 مانگانەی وەسڵی دەستی
             </button>
@@ -428,13 +428,19 @@
           "
         >
           <h3 style="margin: 0">📅 مانگانەی وەسڵی دەستی</h3>
-          <div style="display:flex;gap:8px;">
-            <button class="btn btn-primary" onclick="printManualMonthlyReport()">
+          <div style="display: flex; gap: 8px">
+            <button
+              class="btn btn-primary"
+              onclick="printManualMonthlyReport()"
+            >
               🖨️ پڕینت
             </button>
             <button
               class="btn btn-danger"
-              onclick="document.getElementById('manualMonthlyModal').style.display='none'"
+              onclick="
+                document.getElementById('manualMonthlyModal').style.display =
+                  'none'
+              "
             >
               ✕
             </button>
@@ -451,7 +457,9 @@
             onchange="loadManualMonthlyData(this.value)"
           />
         </div>
-        <hr style="border: none; border-top: 2px dashed #eee; margin: 5px 0 20px" />
+        <hr
+          style="border: none; border-top: 2px dashed #eee; margin: 5px 0 20px"
+        />
         <div id="manualMonthlyContent"></div>
       </div>
     </div>
@@ -730,7 +738,9 @@
       <div class="print-logo">
         <img src="logo.jpeg" alt="Sulaymaniyah Terminal" />
       </div>
-      <div class="print-title">مانگانەی وەسڵی دەستی - تێرمیناڵی سەرەکی سلێمانی</div>
+      <div class="print-title">
+        مانگانەی وەسڵی دەستی - تێرمیناڵی سەرەکی سلێمانی
+      </div>
       <div id="manual-monthly-print-content"></div>
     </div>
 
@@ -857,23 +867,44 @@
     <!-- Update Invoice Modal -->
     <div id="updateInvoiceModal" class="modal">
       <div class="modal-content" style="max-width: 420px">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
-          <h3 style="margin:0">✏️ نوێکردنەوەی وەسڵ</h3>
-          <button class="btn btn-danger" onclick="document.getElementById('updateInvoiceModal').style.display='none'">✕</button>
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+          "
+        >
+          <h3 style="margin: 0">✏️ نوێکردنەوەی وەسڵ</h3>
+          <button
+            class="btn btn-danger"
+            onclick="
+              document.getElementById('updateInvoiceModal').style.display =
+                'none'
+            "
+          >
+            ✕
+          </button>
         </div>
         <input type="hidden" id="updateInvId" />
         <input type="hidden" id="updateInvDate" />
-        <div style="margin-bottom:12px;">
-          <label style="font-weight:bold;display:block;margin-bottom:6px;">ژمارەی ئۆتۆمبێل:</label>
-          <input type="text" id="updateCarNumber" style="width:100%" />
+        <div style="margin-bottom: 12px">
+          <label style="font-weight: bold; display: block; margin-bottom: 6px"
+            >ژمارەی ئۆتۆمبێل:</label
+          >
+          <input type="text" id="updateCarNumber" style="width: 100%" />
         </div>
-        <div style="margin-bottom:12px;">
-          <label style="font-weight:bold;display:block;margin-bottom:6px;">جۆری ئۆتۆمبێل:</label>
-          <input type="text" id="updateType" style="width:100%" />
+        <div style="margin-bottom: 12px">
+          <label style="font-weight: bold; display: block; margin-bottom: 6px"
+            >جۆری ئۆتۆمبێل:</label
+          >
+          <input type="text" id="updateType" style="width: 100%" />
         </div>
-        <div style="margin-bottom:12px;">
-          <label style="font-weight:bold;display:block;margin-bottom:6px;">هێڵ:</label>
-          <select id="updateLine" style="width:100%;margin-bottom:0">
+        <div style="margin-bottom: 12px">
+          <label style="font-weight: bold; display: block; margin-bottom: 6px"
+            >هێڵ:</label
+          >
+          <select id="updateLine" style="width: 100%; margin-bottom: 0">
             <option value="هەولێر">هەولێر</option>
             <option value="کەرکوک">کەرکوک</option>
             <option value="ڕانیە">ڕانیە</option>
@@ -885,17 +916,31 @@
             <option value="پارکینگ">پارکینگ</option>
           </select>
         </div>
-        <div style="margin-bottom:12px;">
-          <label style="font-weight:bold;display:block;margin-bottom:6px;">نرخ (IQD):</label>
-          <input type="number" id="updatePrice" min="0" style="width:100%" />
+        <div style="margin-bottom: 12px">
+          <label style="font-weight: bold; display: block; margin-bottom: 6px"
+            >نرخ (IQD):</label
+          >
+          <input type="number" id="updatePrice" min="0" style="width: 100%" />
         </div>
-        <div style="margin-bottom:20px;">
-          <label style="font-weight:bold;display:block;margin-bottom:6px;">تێبینی وەسڵ:</label>
-          <input type="text" id="updateNote" style="width:100%" />
+        <div style="margin-bottom: 20px">
+          <label style="font-weight: bold; display: block; margin-bottom: 6px"
+            >تێبینی وەسڵ:</label
+          >
+          <input type="text" id="updateNote" style="width: 100%" />
         </div>
-        <div style="display:flex;gap:10px;justify-content:flex-end;">
-          <button class="btn btn-danger" onclick="document.getElementById('updateInvoiceModal').style.display='none'">هەڵوەشاندنەوە</button>
-          <button class="btn btn-success" onclick="saveUpdateInvoice()">تۆمارکردن</button>
+        <div style="display: flex; gap: 10px; justify-content: flex-end">
+          <button
+            class="btn btn-danger"
+            onclick="
+              document.getElementById('updateInvoiceModal').style.display =
+                'none'
+            "
+          >
+            هەڵوەشاندنەوە
+          </button>
+          <button class="btn btn-success" onclick="saveUpdateInvoice()">
+            تۆمارکردن
+          </button>
         </div>
       </div>
     </div>
@@ -911,14 +956,22 @@
             margin-bottom: 20px;
           "
         >
-          <h3 style="margin: 0">📊 کۆی داهاتی مانگانەی وەسڵی دەستی و پسووڵەکان</h3>
+          <h3 style="margin: 0">
+            📊 کۆی داهاتی مانگانەی وەسڵی دەستی و پسووڵەکان
+          </h3>
           <div style="display: flex; gap: 8px">
-            <button class="btn btn-primary" onclick="printCombinedMonthlyReport()">
+            <button
+              class="btn btn-primary"
+              onclick="printCombinedMonthlyReport()"
+            >
               🖨️ پڕینت
             </button>
             <button
               class="btn btn-danger"
-              onclick="document.getElementById('combinedMonthlyModal').style.display='none'"
+              onclick="
+                document.getElementById('combinedMonthlyModal').style.display =
+                  'none'
+              "
             >
               ✕
             </button>
@@ -935,7 +988,9 @@
             onchange="loadCombinedMonthlyData(this.value)"
           />
         </div>
-        <hr style="border: none; border-top: 2px dashed #eee; margin: 5px 0 20px" />
+        <hr
+          style="border: none; border-top: 2px dashed #eee; margin: 5px 0 20px"
+        />
         <div id="combinedMonthlyContent"></div>
       </div>
     </div>

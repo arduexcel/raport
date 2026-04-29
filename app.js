@@ -197,7 +197,9 @@ async function fetchInvoices() {
     allItems.push(data);
   });
 
-  allItems.sort((a, b) => (parseInt(a.invoiceNo) || 0) - (parseInt(b.invoiceNo) || 0));
+  allItems.sort(
+    (a, b) => (parseInt(a.invoiceNo) || 0) - (parseInt(b.invoiceNo) || 0),
+  );
 
   currentInvoices = [];
   let totalMoney = 0;
@@ -232,7 +234,7 @@ async function fetchInvoices() {
         if (currentUser.role === "admin" || currentUser.role === "audit") {
           const encNote = encodeURIComponent(inv.note || "");
           actionBtn = `
-            <button class="btn btn-primary no-print" style="padding:5px 10px;font-size:12px;margin-left:4px;" onclick="openUpdateInvoice('${invId}','${date}','${inv.carNumber || ""}','${inv.type || ""}','${inv.line || ""}',${parseInt(inv.price)||0},'${encNote}')">نوێکردنەوە</button>
+            <button class="btn btn-primary no-print" style="padding:5px 10px;font-size:12px;margin-left:4px;" onclick="openUpdateInvoice('${invId}','${date}','${inv.carNumber || ""}','${inv.type || ""}','${inv.line || ""}',${parseInt(inv.price) || 0},'${encNote}')">نوێکردنەوە</button>
             <button class="btn btn-danger no-print" style="padding:5px 10px;font-size:12px;" onclick="softDeleteInvoice('${invId}','${inv.carNumber}','${date}')">سڕینەوە</button>`;
         }
       }
@@ -263,23 +265,33 @@ async function fetchInvoices() {
   document.getElementById("invoiceBody").innerHTML = rowsHtml;
 
   document.getElementById("totalCount").innerText = count;
-  document.getElementById("totalMoney").innerText = totalMoney.toLocaleString() + " IQD";
+  document.getElementById("totalMoney").innerText =
+    totalMoney.toLocaleString() + " IQD";
   document.getElementById("topTotalCount").innerText = count;
-  document.getElementById("topTotalMoney").innerText = totalMoney.toLocaleString() + " IQD";
+  document.getElementById("topTotalMoney").innerText =
+    totalMoney.toLocaleString() + " IQD";
 
   const isAzad = currentUser.name.toLowerCase() === "azad";
-  const manualExtra = isAzad ? (manualInvoicePrices[date] || 0) : 0;
+  const manualExtra = isAzad ? manualInvoicePrices[date] || 0 : 0;
   const dayTotal = (totalMoney + manualExtra).toLocaleString() + " IQD";
   const manualStr = manualExtra.toLocaleString() + " IQD";
 
   const showManual = isAzad && manualExtra > 0;
-  document.getElementById("manualExtraCard").style.display = showManual ? "" : "none";
-  document.getElementById("dayTotalCard").style.display = showManual ? "" : "none";
+  document.getElementById("manualExtraCard").style.display = showManual
+    ? ""
+    : "none";
+  document.getElementById("dayTotalCard").style.display = showManual
+    ? ""
+    : "none";
   document.getElementById("topManualExtra").innerText = manualStr;
   document.getElementById("topDayTotal").innerText = dayTotal;
 
-  document.getElementById("bottomManualExtraCard").style.display = showManual ? "" : "none";
-  document.getElementById("bottomDayTotalCard").style.display = showManual ? "" : "none";
+  document.getElementById("bottomManualExtraCard").style.display = showManual
+    ? ""
+    : "none";
+  document.getElementById("bottomDayTotalCard").style.display = showManual
+    ? ""
+    : "none";
   document.getElementById("bottomManualExtra").innerText = manualStr;
   document.getElementById("bottomDayTotal").innerText = dayTotal;
 }
@@ -290,7 +302,8 @@ function downloadExcel() {
     return;
   }
   let csvContent = "\uFEFF";
-  csvContent += "ژ.وەسڵ,کات,کارمەند,ژمارەی ئۆتۆمبێل,جۆری ئۆتۆمبێل,هێڵ,نرخ,تێبینی,دۆخ\n";
+  csvContent +=
+    "ژ.وەسڵ,کات,کارمەند,ژمارەی ئۆتۆمبێل,جۆری ئۆتۆمبێل,هێڵ,نرخ,تێبینی,دۆخ\n";
   currentInvoices.forEach((inv) => {
     const row = [
       inv.invoiceNo || "",
@@ -523,7 +536,8 @@ async function calcRange() {
   });
 
   document.getElementById("rangeCount").innerText = grandCount;
-  document.getElementById("rangeTotal").innerText = grandTotal.toLocaleString() + " IQD";
+  document.getElementById("rangeTotal").innerText =
+    grandTotal.toLocaleString() + " IQD";
 }
 
 function showLineReport() {
@@ -536,14 +550,17 @@ function showLineReport() {
     const line = inv.line || "پارکینگ";
     const type = inv.type || "نادیار";
     if (!lineMap[line]) lineMap[line] = { types: {}, total: 0, count: 0 };
-    if (!lineMap[line].types[type]) lineMap[line].types[type] = { count: 0, total: 0 };
+    if (!lineMap[line].types[type])
+      lineMap[line].types[type] = { count: 0, total: 0 };
     lineMap[line].types[type].count++;
     lineMap[line].types[type].total += parseInt(inv.price) || 0;
     lineMap[line].count++;
     lineMap[line].total += parseInt(inv.price) || 0;
   });
 
-  const entries = Object.entries(lineMap).sort((a, b) => b[1].count - a[1].count);
+  const entries = Object.entries(lineMap).sort(
+    (a, b) => b[1].count - a[1].count,
+  );
 
   if (entries.length === 0) {
     document.getElementById("lineReportContent").innerHTML =
@@ -562,7 +579,9 @@ function showLineReport() {
     grandCount += data.count;
     if (line === "پارکینگ") parkingCount = data.count;
 
-    const typeEntries = Object.entries(data.types).sort((a, b) => b[1].count - a[1].count);
+    const typeEntries = Object.entries(data.types).sort(
+      (a, b) => b[1].count - a[1].count,
+    );
     const typeHtml = typeEntries
       .map(
         ([type, td]) =>
@@ -577,11 +596,14 @@ function showLineReport() {
     </tr>`;
   });
 
-  const parkingCard = parkingCount > 0 ? `
+  const parkingCard =
+    parkingCount > 0
+      ? `
     <div style="background:#8e44ad;color:white;padding:14px;border-radius:10px;text-align:center;">
       <div style="font-size:13px;opacity:.85;">کۆی پارکینگ</div>
       <div style="font-size:24px;font-weight:bold;">${parkingCount}</div>
-    </div>` : "";
+    </div>`
+      : "";
 
   document.getElementById("lineReportContent").innerHTML = `
     <p style="text-align:center;color:#555;margin-bottom:15px;">بەروار: <b>${date}</b></p>
@@ -619,7 +641,8 @@ function printMonthlyReport() {
     return alert("تکایە سەرەتا مانگێک هەڵبژێرە!");
   const month = document.getElementById("monthPicker").value;
   document.getElementById("monthly-print-content").innerHTML =
-    `<p style="text-align:center;color:#555;margin-bottom:5px;">مانگ: <b>${month}</b></p>` + content;
+    `<p style="text-align:center;color:#555;margin-bottom:5px;">مانگ: <b>${month}</b></p>` +
+    content;
   const el = document.getElementById("monthly-print-area");
   document.body.classList.add("report-printing");
   el.classList.add("is-printing");
@@ -634,7 +657,8 @@ function printManualMonthlyReport() {
     return alert("تکایە سەرەتا مانگێک هەڵبژێرە!");
   const month = document.getElementById("manualMonthPicker").value;
   document.getElementById("manual-monthly-print-content").innerHTML =
-    `<p style="text-align:center;color:#555;margin-bottom:5px;">مانگ: <b>${month}</b></p>` + content;
+    `<p style="text-align:center;color:#555;margin-bottom:5px;">مانگ: <b>${month}</b></p>` +
+    content;
   const el = document.getElementById("manual-monthly-print-area");
   document.body.classList.add("report-printing");
   el.classList.add("is-printing");
@@ -656,10 +680,18 @@ function printDailyReport() {
 }
 
 function openManualInvoiceModal() {
-  const date = document.getElementById("reportDate").value || (() => {
-    const today = new Date();
-    return today.getFullYear() + "-" + String(today.getMonth() + 1).padStart(2, "0") + "-" + String(today.getDate()).padStart(2, "0");
-  })();
+  const date =
+    document.getElementById("reportDate").value ||
+    (() => {
+      const today = new Date();
+      return (
+        today.getFullYear() +
+        "-" +
+        String(today.getMonth() + 1).padStart(2, "0") +
+        "-" +
+        String(today.getDate()).padStart(2, "0")
+      );
+    })();
   const existing = manualInvoicePrices[date] || 0;
   const display = document.getElementById("manualInvoiceCurrentDisplay");
   if (existing > 0) {
@@ -675,11 +707,20 @@ function openManualInvoiceModal() {
 }
 
 async function saveManualInvoice() {
-  const date = document.getElementById("reportDate").value || (() => {
-    const today = new Date();
-    return today.getFullYear() + "-" + String(today.getMonth() + 1).padStart(2, "0") + "-" + String(today.getDate()).padStart(2, "0");
-  })();
-  const val = parseInt(document.getElementById("manualInvoiceInput").value) || 0;
+  const date =
+    document.getElementById("reportDate").value ||
+    (() => {
+      const today = new Date();
+      return (
+        today.getFullYear() +
+        "-" +
+        String(today.getMonth() + 1).padStart(2, "0") +
+        "-" +
+        String(today.getDate()).padStart(2, "0")
+      );
+    })();
+  const val =
+    parseInt(document.getElementById("manualInvoiceInput").value) || 0;
   manualInvoicePrices[date] = val;
   await db1.collection("ManualInvoices").doc(date).set({ price: val });
   fetchInvoices();
@@ -704,7 +745,15 @@ async function deleteManualInvoice(date) {
   showDailyReport();
 }
 
-function openUpdateInvoice(id, date, carNumber, type, line, price, encodedNote) {
+function openUpdateInvoice(
+  id,
+  date,
+  carNumber,
+  type,
+  line,
+  price,
+  encodedNote,
+) {
   const note = decodeURIComponent(encodedNote);
   document.getElementById("updateInvId").value = id;
   document.getElementById("updateInvDate").value = date;
@@ -733,8 +782,18 @@ async function saveUpdateInvoice() {
   const updates = { carNumber, type, line, price, note };
 
   try {
-    await db1.collection("Invoices").doc(date).collection("AllInvoices").doc(id).update(updates);
-    await db2.collection("Invoices").doc(date).collection("AllInvoices").doc(id).update(updates);
+    await db1
+      .collection("Invoices")
+      .doc(date)
+      .collection("AllInvoices")
+      .doc(id)
+      .update(updates);
+    await db2
+      .collection("Invoices")
+      .doc(date)
+      .collection("AllInvoices")
+      .doc(id)
+      .update(updates);
     document.getElementById("updateInvoiceModal").style.display = "none";
     fetchInvoices();
   } catch (e) {
@@ -770,9 +829,15 @@ async function loadManualMonthlyData(month) {
   for (let d = 1; d <= daysInMonth; d++) {
     const dateStr = `${year}-${String(mon).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
     promises.push(
-      db1.collection("ManualInvoices").doc(dateStr).get()
-        .then((doc) => ({ dateStr, price: doc.exists ? (doc.data().price || 0) : 0 }))
-        .catch(() => ({ dateStr, price: 0 }))
+      db1
+        .collection("ManualInvoices")
+        .doc(dateStr)
+        .get()
+        .then((doc) => ({
+          dateStr,
+          price: doc.exists ? doc.data().price || 0 : 0,
+        }))
+        .catch(() => ({ dateStr, price: 0 })),
     );
   }
 
@@ -837,8 +902,12 @@ function showDailyReport() {
   let grandTotal = 0;
   entries.forEach(([name, data]) => {
     // FIX: use reduce instead of Math.min/max spread to avoid stack overflow on large arrays
-    const min = data.nos.length ? data.nos.reduce((a, b) => Math.min(a, b)) : "—";
-    const max = data.nos.length ? data.nos.reduce((a, b) => Math.max(a, b)) : "—";
+    const min = data.nos.length
+      ? data.nos.reduce((a, b) => Math.min(a, b))
+      : "—";
+    const max = data.nos.length
+      ? data.nos.reduce((a, b) => Math.max(a, b))
+      : "—";
     const range = min === max ? min : `${min}-${max}`;
     grandTotal += data.total;
 
@@ -971,7 +1040,8 @@ function printMonthlyLineReport() {
     return alert("تکایە سەرەتا مانگێک هەڵبژێرە!");
   const month = document.getElementById("lineMonthPicker").value;
   document.getElementById("monthly-line-print-content").innerHTML =
-    `<p style="text-align:center;color:#555;margin-bottom:5px;">مانگ: <b>${month}</b></p>` + content;
+    `<p style="text-align:center;color:#555;margin-bottom:5px;">مانگ: <b>${month}</b></p>` +
+    content;
   const el = document.getElementById("monthly-line-print-area");
   document.body.classList.add("report-printing");
   el.classList.add("is-printing");
@@ -991,9 +1061,13 @@ function showTaxiExitReport() {
 
 async function loadTaxiExitData(month) {
   const container = document.getElementById("taxiExitContent");
-  if (!month) { container.innerHTML = ""; return; }
+  if (!month) {
+    container.innerHTML = "";
+    return;
+  }
 
-  container.innerHTML = '<p style="text-align:center;padding:15px;">⏳ چاوەڕێ بکە...</p>';
+  container.innerHTML =
+    '<p style="text-align:center;padding:15px;">⏳ چاوەڕێ بکە...</p>';
 
   const [year, mon] = month.split("-").map(Number);
   const daysInMonth = new Date(year, mon, 0).getDate();
@@ -1002,7 +1076,11 @@ async function loadTaxiExitData(month) {
   for (let d = 1; d <= daysInMonth; d++) {
     const dateStr = `${year}-${String(mon).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
     promises.push(
-      db1.collection("Invoices").doc(dateStr).collection("AllInvoices").get()
+      db1
+        .collection("Invoices")
+        .doc(dateStr)
+        .collection("AllInvoices")
+        .get()
         .then((snap) => ({ snap }))
         .catch(() => ({ snap: null })),
     );
@@ -1032,7 +1110,8 @@ async function loadTaxiExitData(month) {
   document.getElementById("taxiExitSearch").value = "";
 
   if (taxiExitEntries.length === 0) {
-    container.innerHTML = '<p style="text-align:center;color:gray;padding:10px;">هیچ ئۆتۆمبێلێکی دووبارە نییە بۆ ئەم مانگە</p>';
+    container.innerHTML =
+      '<p style="text-align:center;color:gray;padding:10px;">هیچ ئۆتۆمبێلێکی دووبارە نییە بۆ ئەم مانگە</p>';
     return;
   }
 
@@ -1046,7 +1125,7 @@ async function loadTaxiExitData(month) {
     </table>
     <div style="margin-top:15px;background:#c0392b;color:white;padding:14px;border-radius:10px;text-align:center;">
       <div style="font-size:13px;opacity:.85;">کۆی تەکسی دووبارەدەرچووە</div>
-      <div style="font-size:24px;font-weight:bold;">${new Set(taxiExitEntries.map(d => d.carNum)).size}</div>
+      <div style="font-size:24px;font-weight:bold;">${new Set(taxiExitEntries.map((d) => d.carNum)).size}</div>
     </div>`;
 
   renderTaxiExitRows(taxiExitEntries);
@@ -1055,21 +1134,24 @@ async function loadTaxiExitData(month) {
 function renderTaxiExitRows(list) {
   const tbody = document.getElementById("taxiExitTableBody");
   if (!tbody) return;
-  tbody.innerHTML = list.map((data, i) =>
-    `<tr>
+  tbody.innerHTML = list
+    .map(
+      (data, i) =>
+        `<tr>
       <td style="text-align:center;">${i + 1}</td>
       <td style="font-weight:bold;font-size:15px;">${data.carNum}</td>
       <td>${data.type}</td>
       <td>${data.line}</td>
       <td style="text-align:center;font-weight:bold;color:#c0392b;font-size:16px;">${data.count}</td>
-    </tr>`
-  ).join("");
+    </tr>`,
+    )
+    .join("");
 }
 
 function filterTaxiExitRows(query) {
   const q = query.trim();
   const filtered = q
-    ? taxiExitEntries.filter(d => d.carNum.includes(q))
+    ? taxiExitEntries.filter((d) => d.carNum.includes(q))
     : taxiExitEntries;
   renderTaxiExitRows(filtered);
 }
@@ -1100,12 +1182,19 @@ function showDailyTaxiExitReport() {
 
 async function loadDailyTaxiExitData(date) {
   const container = document.getElementById("dailyTaxiExitContent");
-  if (!date) { container.innerHTML = ""; return; }
+  if (!date) {
+    container.innerHTML = "";
+    return;
+  }
 
-  container.innerHTML = '<p style="text-align:center;padding:15px;">⏳ چاوەڕێ بکە...</p>';
+  container.innerHTML =
+    '<p style="text-align:center;padding:15px;">⏳ چاوەڕێ بکە...</p>';
 
   const snap = await db1
-    .collection("Invoices").doc(date).collection("AllInvoices").get()
+    .collection("Invoices")
+    .doc(date)
+    .collection("AllInvoices")
+    .get()
     .catch(() => null);
 
   const carLineMap = {};
@@ -1122,17 +1211,19 @@ async function loadDailyTaxiExitData(date) {
     });
   }
 
-  dailyTaxiExitEntries = Object.values(carLineMap)
-    .sort((a, b) => b.count - a.count);
+  dailyTaxiExitEntries = Object.values(carLineMap).sort(
+    (a, b) => b.count - a.count,
+  );
 
   document.getElementById("dailyTaxiExitSearch").value = "";
 
   if (dailyTaxiExitEntries.length === 0) {
-    container.innerHTML = '<p style="text-align:center;color:gray;padding:10px;">هیچ داتایەک نییە بۆ ئەم ڕۆژە</p>';
+    container.innerHTML =
+      '<p style="text-align:center;color:gray;padding:10px;">هیچ داتایەک نییە بۆ ئەم ڕۆژە</p>';
     return;
   }
 
-  const duplicateCount = dailyTaxiExitEntries.filter(d => d.count > 1).length;
+  const duplicateCount = dailyTaxiExitEntries.filter((d) => d.count > 1).length;
   const totalCount = dailyTaxiExitEntries.length;
 
   container.innerHTML = `
@@ -1160,26 +1251,28 @@ async function loadDailyTaxiExitData(date) {
 function renderDailyTaxiExitRows(list) {
   const tbody = document.getElementById("dailyTaxiExitTableBody");
   if (!tbody) return;
-  tbody.innerHTML = list.map((data, i) => {
-    const isDup = data.count > 1;
-    const countStyle = isDup
-      ? "color:#922b21;font-weight:bold;font-size:16px;"
-      : "color:#7f8c8d;font-size:15px;";
-    const rowStyle = isDup ? "" : "opacity:0.7;";
-    return `<tr style="${rowStyle}">
+  tbody.innerHTML = list
+    .map((data, i) => {
+      const isDup = data.count > 1;
+      const countStyle = isDup
+        ? "color:#922b21;font-weight:bold;font-size:16px;"
+        : "color:#7f8c8d;font-size:15px;";
+      const rowStyle = isDup ? "" : "opacity:0.7;";
+      return `<tr style="${rowStyle}">
       <td style="text-align:center;">${i + 1}</td>
       <td style="font-weight:bold;font-size:15px;">${data.carNum}</td>
       <td>${data.type}</td>
       <td>${data.line}</td>
       <td style="text-align:center;${countStyle}">${data.count}</td>
     </tr>`;
-  }).join("");
+    })
+    .join("");
 }
 
 function filterDailyTaxiExitRows(query) {
   const q = query.trim();
   const filtered = q
-    ? dailyTaxiExitEntries.filter(d => d.carNum.includes(q))
+    ? dailyTaxiExitEntries.filter((d) => d.carNum.includes(q))
     : dailyTaxiExitEntries;
   renderDailyTaxiExitRows(filtered);
 }
@@ -1204,7 +1297,8 @@ async function loadMonthlyLineData(month) {
     return;
   }
 
-  container.innerHTML = '<p style="text-align:center;padding:15px;">⏳ چاوەڕێ بکە...</p>';
+  container.innerHTML =
+    '<p style="text-align:center;padding:15px;">⏳ چاوەڕێ بکە...</p>';
 
   const [year, mon] = month.split("-").map(Number);
   const daysInMonth = new Date(year, mon, 0).getDate();
@@ -1237,7 +1331,8 @@ async function loadMonthlyLineData(month) {
       const type = data.type || "نادیار";
       allTypes.add(type);
       if (!lineMap[line]) lineMap[line] = { count: 0, total: 0, types: {} };
-      if (!lineMap[line].types[type]) lineMap[line].types[type] = { count: 0, total: 0 };
+      if (!lineMap[line].types[type])
+        lineMap[line].types[type] = { count: 0, total: 0 };
       lineMap[line].count++;
       lineMap[line].total += parseInt(data.price) || 0;
       lineMap[line].types[type].count++;
@@ -1245,10 +1340,13 @@ async function loadMonthlyLineData(month) {
     });
   });
 
-  const entries = Object.entries(lineMap).sort((a, b) => b[1].total - a[1].total);
+  const entries = Object.entries(lineMap).sort(
+    (a, b) => b[1].total - a[1].total,
+  );
 
   if (entries.length === 0) {
-    container.innerHTML = '<p style="text-align:center;color:gray;padding:10px;">هیچ داتایەک نییە بۆ ئەم مانگە</p>';
+    container.innerHTML =
+      '<p style="text-align:center;color:gray;padding:10px;">هیچ داتایەک نییە بۆ ئەم مانگە</p>';
     return;
   }
 
@@ -1256,16 +1354,18 @@ async function loadMonthlyLineData(month) {
   const grandCount = entries.reduce((s, [, d]) => s + d.count, 0);
   const grandTotal = entries.reduce((s, [, d]) => s + d.total, 0);
 
-  const typeHeaders = typeList.map(t => `<th>کۆی ${t}</th>`).join("");
+  const typeHeaders = typeList.map((t) => `<th>کۆی ${t}</th>`).join("");
 
   const rows = entries
     .map(([line, data]) => {
-      const typeCells = typeList.map(t => {
-        const td = data.types[t];
-        return td
-          ? `<td style="font-size:13px;">${td.total.toLocaleString()} IQD<br><span style="color:#888;font-size:11px;">${td.count} وەسڵ</span></td>`
-          : `<td style="color:#ccc;">—</td>`;
-      }).join("");
+      const typeCells = typeList
+        .map((t) => {
+          const td = data.types[t];
+          return td
+            ? `<td style="font-size:13px;">${td.total.toLocaleString()} IQD<br><span style="color:#888;font-size:11px;">${td.count} وەسڵ</span></td>`
+            : `<td style="color:#ccc;">—</td>`;
+        })
+        .join("");
       return `<tr>
         <td style="font-weight:bold;">${line}</td>
         <td>${data.count}</td>
@@ -1320,14 +1420,24 @@ async function loadCombinedMonthlyData(month) {
   for (let d = 1; d <= daysInMonth; d++) {
     const dateStr = `${year}-${String(mon).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
     invoicePromises.push(
-      db1.collection("Invoices").doc(dateStr).collection("AllInvoices").get()
+      db1
+        .collection("Invoices")
+        .doc(dateStr)
+        .collection("AllInvoices")
+        .get()
         .then((snap) => ({ dateStr, snap }))
-        .catch(() => ({ dateStr, snap: null }))
+        .catch(() => ({ dateStr, snap: null })),
     );
     manualPromises.push(
-      db1.collection("ManualInvoices").doc(dateStr).get()
-        .then((doc) => ({ dateStr, price: doc.exists ? (doc.data().price || 0) : 0 }))
-        .catch(() => ({ dateStr, price: 0 }))
+      db1
+        .collection("ManualInvoices")
+        .doc(dateStr)
+        .get()
+        .then((doc) => ({
+          dateStr,
+          price: doc.exists ? doc.data().price || 0 : 0,
+        }))
+        .catch(() => ({ dateStr, price: 0 })),
     );
   }
 
@@ -1403,6 +1513,20 @@ async function loadCombinedMonthlyData(month) {
         <div style="font-size:13px;color:#9a7d0a;font-weight:600;">کۆی گشتی</div>
         <div style="font-size:22px;font-weight:bold;color:#d4ac0d;">${grandTotal.toLocaleString()} IQD</div>
       </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;margin-top:150px;text-align:center;">
+      <div>
+        <h1 style="font-size:18px;font-weight:bold;margin:0 0 6px;">محدم نوزاد ابراهیم</h1>
+        <h1 style="font-size:16px;font-weight:normal;margin:0;color:#555;">ووردبین</h1>
+      </div>
+      <div>
+        <h1 style="font-size:18px;font-weight:bold;margin:0 0 6px;">ئازاد عبداللە نجم</h1>
+        <h1 style="font-size:16px;font-weight:normal;margin:0;color:#555;">ژمێریار</h1>
+      </div>
+      <div>
+        <h1 style="font-size:18px;font-weight:bold;margin:0 0 6px;">سۆران نوری گورون</h1>
+        <h1 style="font-size:16px;font-weight:normal;margin:0;color:#555;">بەڕێوەبەر</h1>
+      </div>
     </div>`;
 }
 
@@ -1412,7 +1536,8 @@ function printCombinedMonthlyReport() {
     return alert("تکایە سەرەتا مانگێک هەڵبژێرە!");
   const month = document.getElementById("combinedMonthPicker").value;
   document.getElementById("combined-monthly-print-content").innerHTML =
-    `<p style="text-align:center;color:#555;margin-bottom:5px;">مانگ: <b>${month}</b></p>` + content;
+    `<p style="text-align:center;color:#555;margin-bottom:5px;">مانگ: <b>${month}</b></p>` +
+    content;
   const el = document.getElementById("combined-monthly-print-area");
   document.body.classList.add("report-printing");
   el.classList.add("is-printing");
