@@ -124,7 +124,7 @@
             style="background: #1a5276"
             onclick="showCombinedMonthlyReport()"
           >
-            📊 کۆی داهاتی مانگانەی وەسڵی دەستی و پسووڵەکان
+            📊 کۆی داهاتی مانگانەی پسووڵەی دەستی و پسووڵەکان
           </button>
           <button class="btn btn-danger" onclick="logout()">🚪 دەرچوون</button>
         </div>
@@ -369,17 +369,29 @@
             text-align: center;
           "
         >
-          <div style="font-size: 13px; color: #555; margin-bottom: 4px">
-            نرخی تۆمارکراوی ئێستا:
+          <div style="font-size: 13px; color: #555; margin-bottom: 8px">
+            تۆمارکردنی نرخ و ژمارەی پسووڵە:
           </div>
-          <div
-            id="manualInvoiceCurrentValue"
-            style="font-size: 20px; font-weight: bold; color: #27ae60"
-          ></div>
+          <div style="display: flex; gap: 20px; justify-content: center">
+            <div style="text-align: center">
+              <div style="font-size: 11px; color: #777; margin-bottom: 2px">نرخ</div>
+              <div
+                id="manualInvoiceCurrentValue"
+                style="font-size: 18px; font-weight: bold; color: #27ae60"
+              ></div>
+            </div>
+            <div style="text-align: center">
+              <div style="font-size: 11px; color: #777; margin-bottom: 2px">ژمارەی پسووڵە</div>
+              <div
+                id="manualInvoiceCurrentValue2"
+                style="font-size: 18px; font-weight: bold; color: #27ae60"
+              ></div>
+            </div>
+          </div>
         </div>
         <div style="margin-bottom: 15px">
           <label style="font-weight: bold; display: block; margin-bottom: 8px"
-            >نرخی نوێ (IQD):</label
+            >نرخ (IQD):</label
           >
           <input
             type="number"
@@ -389,19 +401,40 @@
             style="width: 100%; font-size: 16px"
           />
         </div>
-        <div style="display: flex; gap: 10px; justify-content: flex-end">
-          <button
-            class="btn btn-danger"
-            onclick="
-              document.getElementById('manualInvoiceModal').style.display =
-                'none'
-            "
+        <div style="margin-bottom: 15px">
+          <label style="font-weight: bold; display: block; margin-bottom: 8px"
+            >ژمارەی پسووڵەی دەستی:</label
           >
-            هەڵوەشاندنەوە
+          <input
+            type="text"
+            id="manualInvoiceInput2"
+            placeholder="ژمارەکە بنووسە..."
+            style="width: 100%; font-size: 16px"
+          />
+        </div>
+        <div style="display: flex; gap: 10px; align-items: center">
+          <button
+            id="manualInvoiceDeleteBtn"
+            class="btn btn-danger"
+            style="display: none; margin-left: auto"
+            onclick="deleteManualInvoiceFromModal()"
+          >
+            🗑️ سڕینەوە
           </button>
-          <button class="btn btn-success" onclick="saveManualInvoice()">
-            تۆمارکردن
-          </button>
+          <div style="display: flex; gap: 10px; margin-right: auto">
+            <button
+              class="btn btn-danger"
+              onclick="
+                document.getElementById('manualInvoiceModal').style.display =
+                  'none'
+              "
+            >
+              هەڵوەشاندنەوە
+            </button>
+            <button class="btn btn-success" onclick="saveManualInvoice()">
+              تۆمارکردن
+            </button>
+          </div>
         </div>
         <div
           id="manualInvoiceSaved"
@@ -957,7 +990,7 @@
           "
         >
           <h3 style="margin: 0">
-            📊 کۆی داهاتی مانگانەی وەسڵی دەستی و پسووڵەکان
+            📊 کۆی داهاتی مانگانەی پسووڵەی دەستی و پسووڵەکان
           </h3>
           <div style="display: flex; gap: 8px">
             <button
@@ -1001,7 +1034,7 @@
         <img src="logo.jpeg" alt="Sulaymaniyah Terminal" />
       </div>
       <div class="print-title">
-        کۆی داهاتی مانگانەی وەسڵی دەستی و پسووڵەکان - تێرمیناڵی سەرەکی سلێمانی
+        کۆی داهاتی مانگانەی پسووڵەی دەستی و پسووڵەکان - تێرمیناڵی سەرەکی سلێمانی
       </div>
       <div id="combined-monthly-print-content"></div>
     </div>

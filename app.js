@@ -25,6 +25,7 @@ const db2 = app2.firestore();
 let currentUser = null;
 let currentInvoices = [];
 let manualInvoicePrices = {};
+let manualInvoiceRaw = {};
 let unsubscribeUsersList = null;
 let taxiExitEntries = []; // FIX: track onSnapshot unsubscribe to prevent listener leaks
 
@@ -692,16 +693,23 @@ function openManualInvoiceModal() {
         String(today.getDate()).padStart(2, "0")
       );
     })();
-  const existing = manualInvoicePrices[date] || 0;
+  const raw = manualInvoiceRaw[date] || { price: 0, price2: 0 };
   const display = document.getElementById("manualInvoiceCurrentDisplay");
-  if (existing > 0) {
+  const hasData = raw.price > 0 || raw.price2 !== "";
+  if (hasData) {
     document.getElementById("manualInvoiceCurrentValue").innerText =
-      existing.toLocaleString() + " IQD";
+      raw.price.toLocaleString() + " IQD";
+    document.getElementById("manualInvoiceCurrentValue2").innerText =
+      raw.price2;
     display.style.display = "block";
   } else {
     display.style.display = "none";
   }
+  document.getElementById("manualInvoiceDeleteBtn").style.display = hasData
+    ? "inline-flex"
+    : "none";
   document.getElementById("manualInvoiceInput").value = "";
+  document.getElementById("manualInvoiceInput2").value = "";
   document.getElementById("manualInvoiceSaved").style.display = "none";
   document.getElementById("manualInvoiceModal").style.display = "flex";
 }
@@ -721,14 +729,21 @@ async function saveManualInvoice() {
     })();
   const val =
     parseInt(document.getElementById("manualInvoiceInput").value) || 0;
+  const val2 = document.getElementById("manualInvoiceInput2").value.trim();
+  manualInvoiceRaw[date] = { price: val, price2: val2 };
   manualInvoicePrices[date] = val;
-  await db1.collection("ManualInvoices").doc(date).set({ price: val });
+  await db1
+    .collection("ManualInvoices")
+    .doc(date)
+    .set({ price: val, price2: val2 });
   fetchInvoices();
   document.getElementById("manualInvoiceCurrentValue").innerText =
     val.toLocaleString() + " IQD";
+  document.getElementById("manualInvoiceCurrentValue2").innerText = val2;
   document.getElementById("manualInvoiceCurrentDisplay").style.display =
-    val > 0 ? "block" : "none";
+    val > 0 || val2 !== "" ? "block" : "none";
   document.getElementById("manualInvoiceInput").value = "";
+  document.getElementById("manualInvoiceInput2").value = "";
   const saved = document.getElementById("manualInvoiceSaved");
   saved.innerText = `✅ تۆمارکرا: ${val.toLocaleString()} IQD`;
   saved.style.display = "block";
@@ -740,9 +755,27 @@ async function saveManualInvoice() {
 async function deleteManualInvoice(date) {
   if (!confirm("دڵنیای لە سڕینەوەی وەسڵی دەستی؟")) return;
   manualInvoicePrices[date] = 0;
+  manualInvoiceRaw[date] = { price: 0, price2: 0 };
   await db1.collection("ManualInvoices").doc(date).delete();
   fetchInvoices();
   showDailyReport();
+}
+
+function deleteManualInvoiceFromModal() {
+  const date =
+    document.getElementById("reportDate").value ||
+    (() => {
+      const today = new Date();
+      return (
+        today.getFullYear() +
+        "-" +
+        String(today.getMonth() + 1).padStart(2, "0") +
+        "-" +
+        String(today.getDate()).padStart(2, "0")
+      );
+    })();
+  document.getElementById("manualInvoiceModal").style.display = "none";
+  deleteManualInvoice(date);
 }
 
 function openUpdateInvoice(
@@ -804,7 +837,11 @@ async function saveUpdateInvoice() {
 async function loadManualInvoicePrices() {
   const snap = await db1.collection("ManualInvoices").get();
   snap.forEach((doc) => {
-    manualInvoicePrices[doc.id] = doc.data().price || 0;
+    const d = doc.data();
+    const p1 = d.price || 0;
+    const p2 = d.price2 || "";
+    manualInvoiceRaw[doc.id] = { price: p1, price2: p2 };
+    manualInvoicePrices[doc.id] = p1;
   });
 }
 
@@ -1436,8 +1473,9 @@ async function loadCombinedMonthlyData(month) {
         .then((doc) => ({
           dateStr,
           price: doc.exists ? doc.data().price || 0 : 0,
+          price2: doc.exists ? doc.data().price2 || "" : "",
         }))
-        .catch(() => ({ dateStr, price: 0 })),
+        .catch(() => ({ dateStr, price: 0, price2: "" })),
     );
   }
 
@@ -1447,8 +1485,8 @@ async function loadCombinedMonthlyData(month) {
   ]);
 
   const manualByDate = {};
-  manualResults.forEach(({ dateStr, price }) => {
-    manualByDate[dateStr] = price;
+  manualResults.forEach(({ dateStr, price, price2 }) => {
+    manualByDate[dateStr] = { price, price2 };
   });
 
   let rows = "";
@@ -1465,8 +1503,9 @@ async function loadCombinedMonthlyData(month) {
         }
       });
     }
-    const manualPrice = manualByDate[dateStr] || 0;
-    if (dayTotal === 0 && manualPrice === 0) return;
+    const manualPrice = (manualByDate[dateStr] || {}).price || 0;
+    const manualCount = (manualByDate[dateStr] || {}).price2 || "";
+    if (dayTotal === 0 && manualPrice === 0 && manualCount === "") return;
 
     grandManual += manualPrice;
     grandMonthly += dayTotal;
@@ -1475,6 +1514,7 @@ async function loadCombinedMonthlyData(month) {
     rows += `<tr>
       <td><b>${dateStr}</b></td>
       <td style="color:#27ae60;font-weight:bold;">${manualPrice > 0 ? manualPrice.toLocaleString() + " IQD" : "—"}</td>
+      <td style="color:#8e44ad;font-weight:bold;">${manualCount !== "" ? manualCount : "—"}</td>
       <td style="color:#2471a3;font-weight:bold;">${dayTotal > 0 ? dayTotal.toLocaleString() + " IQD" : "—"}</td>
       <td style="font-weight:bold;">${total.toLocaleString()} IQD</td>
     </tr>`;
@@ -1493,7 +1533,8 @@ async function loadCombinedMonthlyData(month) {
       <thead>
         <tr>
           <th>بەروار</th>
-          <th>نرخی وەسڵی دەستی</th>
+          <th>نرخی پسووڵەی دەستی</th>
+          <th>ژمارەی پسووڵەی دەستی</th>
           <th>نرخی مانگانەی پسووڵەکان</th>
           <th>کۆی گشتی</th>
         </tr>
