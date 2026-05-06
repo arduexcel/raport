@@ -1543,7 +1543,7 @@ async function loadCombinedMonthlyData(month) {
     </table>
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:20px;">
       <div style="background:#eafaf1;border:2px solid #27ae60;padding:15px;border-radius:10px;text-align:center;">
-        <div style="font-size:13px;color:#1e8449;font-weight:600;">کۆی وەسڵی دەستی</div>
+        <div style="font-size:13px;color:#1e8449;font-weight:600;">کۆی پسووڵەی دەستی</div>
         <div style="font-size:22px;font-weight:bold;color:#27ae60;">${grandManual.toLocaleString()} IQD</div>
       </div>
       <div style="background:#eaf4fb;border:2px solid #2471a3;padding:15px;border-radius:10px;text-align:center;">
