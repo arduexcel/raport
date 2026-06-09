@@ -249,7 +249,7 @@ async function fetchInvoices() {
         : "---";
 
       rowsHtml += `<tr class="${rowClass}">
-        <td>${inv.invoiceNo || "---"}</td>
+        <td>${isDeleted ? "---" : count}</td>
         <td>${timeDisplay}</td>
         <td>${inv.employee || "---"}</td>
         <td><b>${inv.carNumber || "---"}</b></td>
@@ -335,8 +335,38 @@ function downloadExcel() {
 }
 
 async function softDeleteInvoice(id, carNum, date) {
-  const reason = prompt(`هۆکاری سڕینەوەی وەسڵی (${carNum}) بنووسە:`);
-  if (!reason) return;
+  // AUDIT role: ask for reason, mark as deleted (strikethrough stays visible)
+  if (currentUser.role === "audit") {
+    const reason = prompt(`هۆکاری سڕینەوەی وەسڵی (${carNum}) بنووسە:`);
+    if (!reason) return;
+
+    try {
+      await db1
+        .collection("Invoices")
+        .doc(date)
+        .collection("AllInvoices")
+        .doc(id)
+        .update({
+          status: "deleted",
+          deleteReason: reason,
+          deletedBy: currentUser.name,
+          deletedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+      await db2
+        .collection("Invoices")
+        .doc(date)
+        .collection("AllInvoices")
+        .doc(id)
+        .delete();
+      fetchInvoices();
+    } catch (e) {
+      alert("هەڵە لە سڕینەوە");
+    }
+    return;
+  }
+
+  // ADMIN role: delete immediately and permanently — no prompt, row disappears
+  if (!confirm(`دڵنیای لە سڕینەوەی وەسڵی (${carNum})؟`)) return;
 
   try {
     await db1
@@ -344,12 +374,7 @@ async function softDeleteInvoice(id, carNum, date) {
       .doc(date)
       .collection("AllInvoices")
       .doc(id)
-      .update({
-        status: "deleted",
-        deleteReason: reason,
-        deletedBy: currentUser.name,
-        deletedAt: firebase.firestore.FieldValue.serverTimestamp(),
-      });
+      .delete();
     await db2
       .collection("Invoices")
       .doc(date)
