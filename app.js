@@ -934,25 +934,66 @@ async function loadManualMonthlyData(month) {
     </div>`;
 }
 
+// Returns which shift a timestamp belongs to.
+// Grace period: 30 min before each shift start counts as that new shift.
+//   07:30–15:29 → 8-4
+//   15:30–23:29 → 4-12
+//   23:30–07:29 → 12-8
+function getShiftLabel(hour, minute) {
+  const GRACE = 30;
+  const totalMin = hour * 60 + (minute || 0);
+  if (totalMin >= 8 * 60 - GRACE && totalMin < 16 * 60 - GRACE) return "8-4";
+  if (totalMin >= 16 * 60 - GRACE && totalMin < 24 * 60 - GRACE) return "4-12";
+  return "12-8";
+}
+
+// Shift display order
+const SHIFT_ORDER = { "12-8": 0, "8-4": 1, "4-12": 2 };
+
 function showDailyReport() {
   const date = document.getElementById("reportDate").value;
   if (!date) return alert("تکایە بەروار هەڵبژێرە!");
 
+  // Step 1: group all invoices by employee
   const empMap = {};
   currentInvoices.forEach((inv) => {
     if (inv.status === "deleted" || inv.status === "canceled") return;
     const emp = inv.employee || "نادیار";
-    if (!empMap[emp]) empMap[emp] = { nos: [], total: 0, hours: [] };
-    const n = parseInt(inv.invoiceNo);
-    if (!isNaN(n)) empMap[emp].nos.push(n);
-    empMap[emp].total += parseInt(inv.price) || 0;
-    if (inv.date && inv.date.includes(" ")) {
-      const hour = parseInt(inv.date.split(" ")[1].split(":")[0]);
-      if (!isNaN(hour)) empMap[emp].hours.push(hour);
-    }
+    if (!empMap[emp]) empMap[emp] = [];
+    empMap[emp].push(inv);
   });
 
-  const entries = Object.entries(empMap);
+  // Step 2: for each employee, determine shift by majority vote of their invoice timestamps
+  const entries = [];
+  Object.entries(empMap).forEach(([emp, invList]) => {
+    const shiftCount = { "8-4": 0, "4-12": 0, "12-8": 0 };
+    invList.forEach((inv) => {
+      if (!inv.date) return;
+      const timePart = inv.date.includes(" ")
+        ? inv.date.split(" ")[1]
+        : inv.date;
+      const parts = (timePart || "").split(":");
+      const hour = parseInt(parts[0]);
+      const minute = parseInt(parts[1]) || 0;
+      if (!isNaN(hour)) shiftCount[getShiftLabel(hour, minute)]++;
+    });
+
+    // The shift with the most invoices wins
+    const shift = Object.entries(shiftCount).reduce((a, b) =>
+      b[1] > a[1] ? b : a,
+    )[0];
+
+    const nos = invList
+      .map((inv) => parseInt(inv.invoiceNo))
+      .filter((n) => !isNaN(n));
+    const total = invList.reduce(
+      (sum, inv) => sum + (parseInt(inv.price) || 0),
+      0,
+    );
+
+    entries.push({ emp, shift, nos, total });
+  });
+
   if (entries.length === 0) {
     document.getElementById("dailyReportContent").innerHTML =
       '<p style="text-align:center;color:gray;">هیچ داتایەک نییە</p>';
@@ -960,32 +1001,31 @@ function showDailyReport() {
     return;
   }
 
+  // Sort by shift order first, then by employee name
+  entries.sort((a, b) => {
+    const so = (SHIFT_ORDER[a.shift] ?? 9) - (SHIFT_ORDER[b.shift] ?? 9);
+    if (so !== 0) return so;
+    return a.emp < b.emp ? -1 : a.emp > b.emp ? 1 : 0;
+  });
+
   let rows = "";
   let grandTotal = 0;
-  entries.forEach(([name, data]) => {
-    // FIX: use reduce instead of Math.min/max spread to avoid stack overflow on large arrays
-    const min = data.nos.length
-      ? data.nos.reduce((a, b) => Math.min(a, b))
-      : "—";
-    const max = data.nos.length
-      ? data.nos.reduce((a, b) => Math.max(a, b))
-      : "—";
-    const range = min === max ? min : `${min}-${max}`;
-    grandTotal += data.total;
 
-    let shift = "—";
-    if (data.hours.length) {
-      const avgHour = data.hours.reduce((a, b) => a + b, 0) / data.hours.length;
-      if (avgHour >= 8 && avgHour < 16) shift = "8-4";
-      else if (avgHour >= 16) shift = "4-12";
-      else shift = "12-8";
-    }
+  entries.forEach(({ emp, shift, nos, total }) => {
+    const min = nos.length ? Math.min(...nos) : "—";
+    const max = nos.length ? Math.max(...nos) : "—";
+    const range =
+      nos.length === 0 ? "—" : min === max ? String(min) : `${min}-${max}`;
+    grandTotal += total;
+
+    const shiftColor =
+      shift === "8-4" ? "#1a5276" : shift === "4-12" ? "#6c3483" : "#1e8449";
 
     rows += `<tr>
-      <td style="font-weight:bold;">${name}</td>
-      <td>${shift}</td>
+      <td style="font-weight:bold;">${emp}</td>
+      <td><span style="background:${shiftColor};color:white;padding:3px 10px;border-radius:6px;font-weight:bold;font-size:13px;">${shift}</span></td>
       <td>${range}</td>
-      <td>${data.total.toLocaleString()} IQD</td>
+      <td style="font-weight:bold;">${total.toLocaleString()} IQD</td>
     </tr>`;
   });
 
