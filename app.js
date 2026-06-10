@@ -954,44 +954,61 @@ function showDailyReport() {
   const date = document.getElementById("reportDate").value;
   if (!date) return alert("تکایە بەروار هەڵبژێرە!");
 
-  // Step 1: group all invoices by employee
+  // Step 1: group all invoices by employee, tracking sequential print order
   const empMap = {};
+  let printOrder = 0;
   currentInvoices.forEach((inv) => {
     if (inv.status === "deleted" || inv.status === "canceled") return;
+    printOrder++;
     const emp = inv.employee || "نادیار";
     if (!empMap[emp]) empMap[emp] = [];
-    empMap[emp].push(inv);
+    empMap[emp].push({ ...inv, _printOrder: printOrder });
   });
 
-  // Step 2: for each employee, determine shift by majority vote of their invoice timestamps
+  // Step 2: for each employee, find consecutive blocks of receipts (gap > 20 in
+  // print order means a different employee's shift is in between), then assign
+  // each block its shift by majority vote of timestamps within that block.
+  // This prevents a single late-night receipt (23:30+) from pulling the entire
+  // afternoon block into the wrong shift.
+  const BLOCK_GAP = 20;
   const entries = [];
+
   Object.entries(empMap).forEach(([emp, invList]) => {
-    const shiftCount = { "8-4": 0, "4-12": 0, "12-8": 0 };
-    invList.forEach((inv) => {
-      if (!inv.date) return;
-      const timePart = inv.date.includes(" ")
-        ? inv.date.split(" ")[1]
-        : inv.date;
-      const parts = (timePart || "").split(":");
-      const hour = parseInt(parts[0]);
-      const minute = parseInt(parts[1]) || 0;
-      if (!isNaN(hour)) shiftCount[getShiftLabel(hour, minute)]++;
+    const sorted = [...invList].sort((a, b) => a._printOrder - b._printOrder);
+
+    const blocks = [];
+    let block = [sorted[0]];
+    for (let i = 1; i < sorted.length; i++) {
+      if (sorted[i]._printOrder - sorted[i - 1]._printOrder > BLOCK_GAP) {
+        blocks.push(block);
+        block = [sorted[i]];
+      } else {
+        block.push(sorted[i]);
+      }
+    }
+    blocks.push(block);
+
+    blocks.forEach((blk) => {
+      const shiftCount = { "8-4": 0, "4-12": 0, "12-8": 0 };
+      blk.forEach((inv) => {
+        if (!inv.date) return;
+        const timePart = inv.date.includes(" ") ? inv.date.split(" ")[1] : inv.date;
+        const parts = (timePart || "").split(":");
+        const hour = parseInt(parts[0]);
+        const minute = parseInt(parts[1]) || 0;
+        if (!isNaN(hour)) shiftCount[getShiftLabel(hour, minute)]++;
+      });
+      const shift = Object.entries(shiftCount).reduce((a, b) =>
+        b[1] > a[1] ? b : a,
+      )[0];
+
+      const nos = blk.map((inv) => inv._printOrder);
+      const total = blk.reduce(
+        (sum, inv) => sum + (parseInt(inv.price) || 0),
+        0,
+      );
+      entries.push({ emp, shift, nos, total });
     });
-
-    // The shift with the most invoices wins
-    const shift = Object.entries(shiftCount).reduce((a, b) =>
-      b[1] > a[1] ? b : a,
-    )[0];
-
-    const nos = invList
-      .map((inv) => parseInt(inv.invoiceNo))
-      .filter((n) => !isNaN(n));
-    const total = invList.reduce(
-      (sum, inv) => sum + (parseInt(inv.price) || 0),
-      0,
-    );
-
-    entries.push({ emp, shift, nos, total });
   });
 
   if (entries.length === 0) {
@@ -1018,12 +1035,9 @@ function showDailyReport() {
       nos.length === 0 ? "—" : min === max ? String(min) : `${min}-${max}`;
     grandTotal += total;
 
-    const shiftColor =
-      shift === "8-4" ? "#1a5276" : shift === "4-12" ? "#6c3483" : "#1e8449";
-
     rows += `<tr>
       <td style="font-weight:bold;">${emp}</td>
-      <td><span style="background:${shiftColor};color:white;padding:3px 10px;border-radius:6px;font-weight:bold;font-size:13px;">${shift}</span></td>
+      <td style="font-weight:bold;">${shift}</td>
       <td>${range}</td>
       <td style="font-weight:bold;">${total.toLocaleString()} IQD</td>
     </tr>`;
