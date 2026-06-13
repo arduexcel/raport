@@ -157,11 +157,18 @@ async function startApp() {
 
 async function loadNewCars() {
   try {
-    const snap = await db1.collection("NewCars").get();
+    const cutoff = firebase.firestore.Timestamp.fromDate(new Date("2026-06-11T00:00:00"));
+    const snap = await db1
+      .collection("Cars")
+      .where("time", ">=", cutoff)
+      .get();
     newCarNumbers.clear();
-    snap.forEach((doc) => newCarNumbers.add(doc.id));
+    snap.forEach((doc) => {
+      const num = doc.data().number;
+      if (num !== undefined && num !== null) newCarNumbers.add(String(num));
+    });
   } catch (e) {
-    // collection may not exist yet — silently ignore
+    // silently ignore
   }
 }
 
@@ -234,7 +241,7 @@ async function fetchInvoices() {
         totalMoney += parseInt(inv.price) || 0;
       }
 
-      const isNewCar = !isDeleted && newCarNumbers.has(inv.carNumber || "");
+      const isNewCar = !isDeleted && newCarNumbers.has(String(inv.carNumber || ""));
       const rowClass = isDeleted ? "deleted-row" : isNewCar ? "new-car-row" : "";
       let actionBtn = "";
 
@@ -247,13 +254,9 @@ async function fetchInvoices() {
       } else {
         if (currentUser.role === "admin" || currentUser.role === "audit") {
           const encNote = encodeURIComponent(inv.note || "");
-          const newCarToggle = isNewCar
-            ? `<button class="btn no-print" style="padding:5px 10px;font-size:12px;background:#e74c3c;margin-left:4px;" onclick="unmarkNewCar('${inv.carNumber}')">★ نوێ لابردن</button>`
-            : `<button class="btn no-print" style="padding:5px 10px;font-size:12px;background:#1abc9c;margin-left:4px;" onclick="markNewCar('${inv.carNumber}')">★ نوێ</button>`;
           actionBtn = `
             <button class="btn btn-primary no-print" style="padding:5px 10px;font-size:12px;margin-left:4px;" onclick="openUpdateInvoice('${invId}','${date}','${inv.carNumber || ""}','${inv.type || ""}','${inv.line || ""}',${parseInt(inv.price) || 0},'${encNote}')">نوێکردنەوە</button>
-            <button class="btn btn-danger no-print" style="padding:5px 10px;font-size:12px;margin-left:4px;" onclick="softDeleteInvoice('${invId}','${inv.carNumber}','${date}')">سڕینەوە</button>
-            ${newCarToggle}`;
+            <button class="btn btn-danger no-print" style="padding:5px 10px;font-size:12px;" onclick="softDeleteInvoice('${invId}','${inv.carNumber}','${date}')">سڕینەوە</button>`;
         }
       }
 
@@ -1686,24 +1689,3 @@ function printCombinedMonthlyReport() {
   document.body.classList.remove("report-printing");
 }
 
-async function markNewCar(carNumber) {
-  try {
-    await db1.collection("NewCars").doc(carNumber).set({
-      addedAt: firebase.firestore.FieldValue.serverTimestamp(),
-    });
-    newCarNumbers.add(carNumber);
-    fetchInvoices();
-  } catch (e) {
-    alert("هەڵە لە تۆمارکردنی ئۆتۆمبێلی نوێ");
-  }
-}
-
-async function unmarkNewCar(carNumber) {
-  try {
-    await db1.collection("NewCars").doc(carNumber).delete();
-    newCarNumbers.delete(carNumber);
-    fetchInvoices();
-  } catch (e) {
-    alert("هەڵە لە لابردنی ئۆتۆمبێلی نوێ");
-  }
-}
