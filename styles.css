@@ -112,6 +112,29 @@ select {
   text-decoration: none !important;
   opacity: 1;
 }
+.new-entry-row {
+  background-color: #fffde7 !important;
+}
+.new-entry-row td {
+  border-right: 3px solid #f9a825;
+}
+.new-car-row {
+  background-color: #e8f8f5 !important;
+}
+.new-car-row td {
+  border-right: 3px solid #1abc9c;
+}
+.badge-new-car {
+  display: inline-block;
+  background: #1abc9c;
+  color: white;
+  font-size: 11px;
+  font-weight: bold;
+  padding: 1px 6px;
+  border-radius: 8px;
+  margin-right: 5px;
+  vertical-align: middle;
+}
 
 .modal {
   display: none;

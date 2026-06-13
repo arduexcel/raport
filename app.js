@@ -27,7 +27,8 @@ let currentInvoices = [];
 let manualInvoicePrices = {};
 let manualInvoiceRaw = {};
 let unsubscribeUsersList = null;
-let taxiExitEntries = []; // FIX: track onSnapshot unsubscribe to prevent listener leaks
+let taxiExitEntries = [];
+let newCarNumbers = new Set();
 
 window.onload = function () {
   const savedUser = localStorage.getItem("terminalAdminUser");
@@ -150,7 +151,18 @@ async function startApp() {
 
   loadEmployees();
   await loadManualInvoicePrices();
+  await loadNewCars();
   fetchInvoices();
+}
+
+async function loadNewCars() {
+  try {
+    const snap = await db1.collection("NewCars").get();
+    newCarNumbers.clear();
+    snap.forEach((doc) => newCarNumbers.add(doc.id));
+  } catch (e) {
+    // collection may not exist yet — silently ignore
+  }
 }
 
 async function loadEmployees() {
@@ -222,7 +234,8 @@ async function fetchInvoices() {
         totalMoney += parseInt(inv.price) || 0;
       }
 
-      const rowClass = isDeleted ? "deleted-row" : "";
+      const isNewCar = !isDeleted && newCarNumbers.has(inv.carNumber || "");
+      const rowClass = isDeleted ? "deleted-row" : isNewCar ? "new-car-row" : "";
       let actionBtn = "";
 
       if (isDeleted) {
@@ -234,9 +247,13 @@ async function fetchInvoices() {
       } else {
         if (currentUser.role === "admin" || currentUser.role === "audit") {
           const encNote = encodeURIComponent(inv.note || "");
+          const newCarToggle = isNewCar
+            ? `<button class="btn no-print" style="padding:5px 10px;font-size:12px;background:#e74c3c;margin-left:4px;" onclick="unmarkNewCar('${inv.carNumber}')">★ نوێ لابردن</button>`
+            : `<button class="btn no-print" style="padding:5px 10px;font-size:12px;background:#1abc9c;margin-left:4px;" onclick="markNewCar('${inv.carNumber}')">★ نوێ</button>`;
           actionBtn = `
             <button class="btn btn-primary no-print" style="padding:5px 10px;font-size:12px;margin-left:4px;" onclick="openUpdateInvoice('${invId}','${date}','${inv.carNumber || ""}','${inv.type || ""}','${inv.line || ""}',${parseInt(inv.price) || 0},'${encNote}')">نوێکردنەوە</button>
-            <button class="btn btn-danger no-print" style="padding:5px 10px;font-size:12px;" onclick="softDeleteInvoice('${invId}','${inv.carNumber}','${date}')">سڕینەوە</button>`;
+            <button class="btn btn-danger no-print" style="padding:5px 10px;font-size:12px;margin-left:4px;" onclick="softDeleteInvoice('${invId}','${inv.carNumber}','${date}')">سڕینەوە</button>
+            ${newCarToggle}`;
         }
       }
 
@@ -248,11 +265,14 @@ async function fetchInvoices() {
           : inv.date
         : "---";
 
+      const newCarBadge = isNewCar
+        ? `<span class="badge-new-car no-print">نوێ</span>`
+        : "";
       rowsHtml += `<tr class="${rowClass}">
         <td>${isDeleted ? "---" : count}</td>
         <td>${timeDisplay}</td>
         <td>${inv.employee || "---"}</td>
-        <td><b>${inv.carNumber || "---"}</b></td>
+        <td><b>${inv.carNumber || "---"}</b>${newCarBadge}</td>
         <td>${inv.type || "نادیار"}</td>
         <td>${inv.line || "---"}</td>
         <td>${priceDisplay} IQD</td>
@@ -1664,4 +1684,26 @@ function printCombinedMonthlyReport() {
   window.print();
   el.classList.remove("is-printing");
   document.body.classList.remove("report-printing");
+}
+
+async function markNewCar(carNumber) {
+  try {
+    await db1.collection("NewCars").doc(carNumber).set({
+      addedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+    newCarNumbers.add(carNumber);
+    fetchInvoices();
+  } catch (e) {
+    alert("هەڵە لە تۆمارکردنی ئۆتۆمبێلی نوێ");
+  }
+}
+
+async function unmarkNewCar(carNumber) {
+  try {
+    await db1.collection("NewCars").doc(carNumber).delete();
+    newCarNumbers.delete(carNumber);
+    fetchInvoices();
+  } catch (e) {
+    alert("هەڵە لە لابردنی ئۆتۆمبێلی نوێ");
+  }
 }
