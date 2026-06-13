@@ -221,10 +221,41 @@ async function fetchInvoices() {
     (a, b) => (parseInt(a.invoiceNo) || 0) - (parseInt(b.invoiceNo) || 0),
   );
 
+  // Count occurrences of each car number (non-deleted, filtered rows only)
+  const carCountMap = {};
+  allItems.forEach((inv) => {
+    if (
+      (lineVal === "" || inv.line === lineVal) &&
+      (empVal === "" || inv.employee === empVal) &&
+      inv.status !== "deleted" && inv.status !== "canceled"
+    ) {
+      const num = String(inv.carNumber || "");
+      if (num) carCountMap[num] = (carCountMap[num] || 0) + 1;
+    }
+  });
+
+  const DUP_COLORS = [
+    { bg: "#fdf3e7", border: "#e67e22" },
+    { bg: "#f4ecf7", border: "#9b59b6" },
+    { bg: "#eaf4fb", border: "#2980b9" },
+    { bg: "#fef5e7", border: "#f39c12" },
+    { bg: "#fdedec", border: "#e74c3c" },
+    { bg: "#e9f7ef", border: "#27ae60" },
+    { bg: "#fdf2f8", border: "#c0392b" },
+    { bg: "#e8f6f3", border: "#16a085" },
+  ];
+  const dupColors = {};
+  let colorIdx = 0;
+  Object.entries(carCountMap).forEach(([num, cnt]) => {
+    if (cnt > 1) {
+      dupColors[num] = DUP_COLORS[colorIdx % DUP_COLORS.length];
+      colorIdx++;
+    }
+  });
+
   currentInvoices = [];
   let totalMoney = 0;
   let count = 0;
-  // FIX: build all row HTML in a string, then set innerHTML once instead of += per row
   let rowsHtml = "";
 
   allItems.forEach((inv) => {
@@ -242,7 +273,11 @@ async function fetchInvoices() {
       }
 
       const isNewCar = !isDeleted && newCarNumbers.has(String(inv.carNumber || ""));
-      const rowClass = isDeleted ? "deleted-row" : isNewCar ? "new-car-row" : "";
+      const dupColor = !isDeleted ? dupColors[String(inv.carNumber || "")] : null;
+      const rowClass = isDeleted ? "deleted-row" : (!dupColor && isNewCar) ? "new-car-row" : "";
+      const rowStyle = dupColor
+        ? `style="background-color:${dupColor.bg};border-right:4px solid ${dupColor.border};"`
+        : "";
       let actionBtn = "";
 
       if (isDeleted) {
@@ -271,11 +306,14 @@ async function fetchInvoices() {
       const newCarBadge = isNewCar
         ? `<span class="badge-new-car no-print">نوێ</span>`
         : "";
-      rowsHtml += `<tr class="${rowClass}">
+      const dupBadge = dupColor
+        ? `<span class="no-print" style="background:${dupColor.border};color:white;font-size:11px;font-weight:bold;padding:1px 6px;border-radius:8px;margin-right:4px;vertical-align:middle;">×${carCountMap[String(inv.carNumber || "")]}</span>`
+        : "";
+      rowsHtml += `<tr class="${rowClass}" ${rowStyle}>
         <td>${isDeleted ? "---" : count}</td>
         <td>${timeDisplay}</td>
         <td>${inv.employee || "---"}</td>
-        <td><b>${inv.carNumber || "---"}</b>${newCarBadge}</td>
+        <td><b>${inv.carNumber || "---"}</b>${newCarBadge}${dupBadge}</td>
         <td>${inv.type || "نادیار"}</td>
         <td>${inv.line || "---"}</td>
         <td>${priceDisplay} IQD</td>
