@@ -157,7 +157,7 @@ async function startApp() {
 
 async function loadNewCars() {
   try {
-    const cutoff = firebase.firestore.Timestamp.fromDate(new Date("2026-06-11T00:00:00"));
+    const cutoff = firebase.firestore.Timestamp.fromDate(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000));
     const snap = await db1
       .collection("Cars")
       .where("time", ">=", cutoff)
@@ -304,10 +304,10 @@ async function fetchInvoices() {
         : "---";
 
       const newCarBadge = isNewCar
-        ? `<span class="badge-new-car no-print">نوێ</span>`
+        ? `<span class="badge-new-car">نوێ</span>`
         : "";
       const dupBadge = dupColor
-        ? `<span class="no-print" style="background:${dupColor.border};color:white;font-size:11px;font-weight:bold;padding:1px 6px;border-radius:8px;margin-right:4px;vertical-align:middle;">×${carCountMap[String(inv.carNumber || "")]}</span>`
+        ? `<span style="background:${dupColor.border};color:white;font-size:11px;font-weight:bold;padding:1px 6px;border-radius:8px;margin-right:4px;vertical-align:middle;">×${carCountMap[String(inv.carNumber || "")]}</span>`
         : "";
       rowsHtml += `<tr class="${rowClass}" ${rowStyle}>
         <td>${isDeleted ? "---" : count}</td>
