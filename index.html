@@ -12,6 +12,8 @@
     <link rel="stylesheet" href="styles.css?v=5" />
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   </head>
   <body>
     <div id="login-overlay">
@@ -70,6 +72,9 @@
           </button>
           <button class="btn btn-primary" onclick="downloadExcel()">
             📥 دابەزاندنی ئێکسڵ
+          </button>
+          <button class="btn" style="background:#c0392b" onclick="downloadInvoiceListPDF()">
+            📄 PDF لیست
           </button>
           <button class="btn btn-success" onclick="window.print()">
             🖨️ پڕینت
@@ -524,6 +529,9 @@
           <div style="display: flex; gap: 8px">
             <button class="btn btn-primary" onclick="printDailyReport()">
               🖨️ پڕینت
+            </button>
+            <button class="btn" style="background:#c0392b" onclick="downloadDailyReportPDF()">
+              📄 PDF
             </button>
             <button
               class="btn btn-danger"
@@ -1010,6 +1018,9 @@
               onclick="printCombinedMonthlyReport()"
             >
               🖨️ پڕینت
+            </button>
+            <button class="btn" style="background:#c0392b" onclick="downloadCombinedMonthlyPDF()">
+              📄 PDF
             </button>
             <button
               class="btn btn-danger"

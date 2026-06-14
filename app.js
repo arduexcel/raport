@@ -1727,3 +1727,131 @@ function printCombinedMonthlyReport() {
   document.body.classList.remove("report-printing");
 }
 
+async function downloadAsPDF(title, contentHtml, filename) {
+  const temp = document.createElement("div");
+  temp.style.cssText =
+    "position:fixed;left:-9999px;top:0;width:794px;background:white;padding:30px;font-family:inherit;direction:rtl;box-sizing:border-box;";
+  temp.innerHTML = `
+    <div style="text-align:center;margin-bottom:15px;">
+      <img src="logo.jpeg" style="height:70px;" crossorigin="anonymous">
+    </div>
+    <div style="text-align:center;font-size:18px;font-weight:bold;margin-bottom:20px;border-bottom:2px solid #333;padding-bottom:10px;">${title}</div>
+    <div>${contentHtml}</div>
+  `;
+  document.body.appendChild(temp);
+  try {
+    const canvas = await html2canvas(temp, {
+      scale: 1.5,
+      useCORS: true,
+      allowTaint: true,
+      logging: false,
+    });
+    const imgData = canvas.toDataURL("image/png");
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ orientation: "p", unit: "mm", format: "a4" });
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+    const imgH = (canvas.height * pageW) / canvas.width;
+    let page = 0;
+    let remaining = imgH;
+    while (remaining > 0) {
+      if (page > 0) pdf.addPage();
+      pdf.addImage(imgData, "PNG", 0, -page * pageH, pageW, imgH);
+      remaining -= pageH;
+      page++;
+    }
+    pdf.save(filename);
+  } catch (e) {
+    alert("هەڵە لە دروستکردنی PDF!");
+  } finally {
+    document.body.removeChild(temp);
+  }
+}
+
+function downloadDailyReportPDF() {
+  const content = document.getElementById("dailyReportContent").innerHTML;
+  if (!content || !content.includes("<table"))
+    return alert("هیچ داتایەک نییە!");
+  const date = document.getElementById("reportDate").value;
+  downloadAsPDF(
+    "ڕاپۆرتی ڕۆژانەی تێرمیناڵی سەرەکی سلێمانی",
+    content,
+    `DailyReport_${date}.pdf`
+  );
+}
+
+function downloadCombinedMonthlyPDF() {
+  const content = document.getElementById("combinedMonthlyContent").innerHTML;
+  if (!content || content.includes("⏳") || !content.includes("<table"))
+    return alert("تکایە سەرەتا مانگێک هەڵبژێرە!");
+  const month = document.getElementById("combinedMonthPicker").value;
+  downloadAsPDF(
+    "کۆی داهاتی مانگانەی پسووڵەی دەستی و پسووڵەکان - تێرمیناڵی سەرەکی سلێمانی",
+    `<p style="text-align:center;color:#555;margin-bottom:10px;">مانگ: <b>${month}</b></p>` + content,
+    `CombinedMonthly_${month}.pdf`
+  );
+}
+
+function downloadInvoiceListPDF() {
+  if (currentInvoices.length === 0)
+    return alert("هیچ داتایەک نییە بۆ دابەزاندن!");
+  const date = document.getElementById("reportDate").value;
+  let count = 0;
+  let totalMoney = 0;
+  let rows = "";
+  currentInvoices.forEach((inv) => {
+    const isDeleted = inv.status === "deleted" || inv.status === "canceled";
+    if (!isDeleted) {
+      count++;
+      totalMoney += parseInt(inv.price) || 0;
+    }
+    const timeDisplay = inv.date
+      ? inv.date.includes(" ")
+        ? inv.date.split(" ")[1]
+        : inv.date
+      : "---";
+    rows += `<tr style="${isDeleted ? "text-decoration:line-through;color:#aaa;" : ""}">
+      <td style="padding:5px 8px;border:1px solid #e0e0e0;text-align:center;">${isDeleted ? "---" : count}</td>
+      <td style="padding:5px 8px;border:1px solid #e0e0e0;text-align:center;">${timeDisplay}</td>
+      <td style="padding:5px 8px;border:1px solid #e0e0e0;">${inv.employee || "---"}</td>
+      <td style="padding:5px 8px;border:1px solid #e0e0e0;font-weight:bold;">${inv.carNumber || "---"}</td>
+      <td style="padding:5px 8px;border:1px solid #e0e0e0;">${inv.type || "نادیار"}</td>
+      <td style="padding:5px 8px;border:1px solid #e0e0e0;">${inv.line || "---"}</td>
+      <td style="padding:5px 8px;border:1px solid #e0e0e0;">${(parseInt(inv.price) || 0).toLocaleString()} IQD</td>
+      <td style="padding:5px 8px;border:1px solid #e0e0e0;">${inv.note || ""}</td>
+    </tr>`;
+  });
+  const content = `
+    <table style="width:100%;border-collapse:collapse;font-size:12px;">
+      <thead>
+        <tr style="background:#2c3e50;color:white;">
+          <th style="padding:7px;border:1px solid #2c3e50;">ژ.وەسڵ</th>
+          <th style="padding:7px;border:1px solid #2c3e50;">کات</th>
+          <th style="padding:7px;border:1px solid #2c3e50;">کارمەند</th>
+          <th style="padding:7px;border:1px solid #2c3e50;">ژمارەی ئۆتۆمبێل</th>
+          <th style="padding:7px;border:1px solid #2c3e50;">جۆری ئۆتۆمبێل</th>
+          <th style="padding:7px;border:1px solid #2c3e50;">هێڵ</th>
+          <th style="padding:7px;border:1px solid #2c3e50;">نرخ</th>
+          <th style="padding:7px;border:1px solid #2c3e50;">تێبینی</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:20px;">
+      <div style="background:#2c3e50;color:white;padding:12px;border-radius:8px;text-align:center;">
+        <div style="font-size:12px;opacity:.85;">کۆی وەسڵەکان</div>
+        <div style="font-size:20px;font-weight:bold;">${count}</div>
+      </div>
+      <div style="background:#1a5276;color:white;padding:12px;border-radius:8px;text-align:center;">
+        <div style="font-size:12px;opacity:.85;">کۆی داهات</div>
+        <div style="font-size:20px;font-weight:bold;">${totalMoney.toLocaleString()} IQD</div>
+      </div>
+    </div>
+  `;
+  downloadAsPDF(
+    "لیستی وەسڵەکان - تێرمیناڵی سەرەکی سلێمانی",
+    `<p style="text-align:center;color:#555;margin-bottom:15px;">بەروار: <b>${date}</b></p>` + content,
+    `InvoiceList_${date}.pdf`
+  );
+}
+
