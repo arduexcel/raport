@@ -1727,7 +1727,12 @@ function printCombinedMonthlyReport() {
   document.body.classList.remove("report-printing");
 }
 
-async function downloadAsPDF(title, contentHtml, filename) {
+async function downloadAsPDF(title, contentHtml, filename, triggerBtn) {
+  if (triggerBtn) {
+    triggerBtn._origText = triggerBtn.innerHTML;
+    triggerBtn.innerHTML = "⏳ چاوەڕێبە...";
+    triggerBtn.disabled = true;
+  }
   const temp = document.createElement("div");
   temp.style.cssText =
     "position:fixed;left:-9999px;top:0;width:794px;background:white;padding:30px;font-family:inherit;direction:rtl;box-sizing:border-box;";
@@ -1739,14 +1744,15 @@ async function downloadAsPDF(title, contentHtml, filename) {
     <div>${contentHtml}</div>
   `;
   document.body.appendChild(temp);
+  await new Promise((r) => setTimeout(r, 50));
   try {
     const canvas = await html2canvas(temp, {
-      scale: 1.5,
+      scale: 1,
       useCORS: true,
       allowTaint: true,
       logging: false,
     });
-    const imgData = canvas.toDataURL("image/png");
+    const imgData = canvas.toDataURL("image/jpeg", 0.92);
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF({ orientation: "p", unit: "mm", format: "a4" });
     const pageW = pdf.internal.pageSize.getWidth();
@@ -1756,7 +1762,7 @@ async function downloadAsPDF(title, contentHtml, filename) {
     let remaining = imgH;
     while (remaining > 0) {
       if (page > 0) pdf.addPage();
-      pdf.addImage(imgData, "PNG", 0, -page * pageH, pageW, imgH);
+      pdf.addImage(imgData, "JPEG", 0, -page * pageH, pageW, imgH);
       remaining -= pageH;
       page++;
     }
@@ -1765,10 +1771,14 @@ async function downloadAsPDF(title, contentHtml, filename) {
     alert("هەڵە لە دروستکردنی PDF!");
   } finally {
     document.body.removeChild(temp);
+    if (triggerBtn) {
+      triggerBtn.innerHTML = triggerBtn._origText;
+      triggerBtn.disabled = false;
+    }
   }
 }
 
-function downloadDailyReportPDF() {
+function downloadDailyReportPDF(btn) {
   const content = document.getElementById("dailyReportContent").innerHTML;
   if (!content || !content.includes("<table"))
     return alert("هیچ داتایەک نییە!");
@@ -1776,11 +1786,12 @@ function downloadDailyReportPDF() {
   downloadAsPDF(
     "ڕاپۆرتی ڕۆژانەی تێرمیناڵی سەرەکی سلێمانی",
     content,
-    `DailyReport_${date}.pdf`
+    `DailyReport_${date}.pdf`,
+    btn
   );
 }
 
-function downloadCombinedMonthlyPDF() {
+function downloadCombinedMonthlyPDF(btn) {
   const content = document.getElementById("combinedMonthlyContent").innerHTML;
   if (!content || content.includes("⏳") || !content.includes("<table"))
     return alert("تکایە سەرەتا مانگێک هەڵبژێرە!");
@@ -1788,11 +1799,12 @@ function downloadCombinedMonthlyPDF() {
   downloadAsPDF(
     "کۆی داهاتی مانگانەی پسووڵەی دەستی و پسووڵەکان - تێرمیناڵی سەرەکی سلێمانی",
     `<p style="text-align:center;color:#555;margin-bottom:10px;">مانگ: <b>${month}</b></p>` + content,
-    `CombinedMonthly_${month}.pdf`
+    `CombinedMonthly_${month}.pdf`,
+    btn
   );
 }
 
-function downloadInvoiceListPDF() {
+function downloadInvoiceListPDF(btn) {
   if (currentInvoices.length === 0)
     return alert("هیچ داتایەک نییە بۆ دابەزاندن!");
   const date = document.getElementById("reportDate").value;
@@ -1851,7 +1863,8 @@ function downloadInvoiceListPDF() {
   downloadAsPDF(
     "لیستی وەسڵەکان - تێرمیناڵی سەرەکی سلێمانی",
     `<p style="text-align:center;color:#555;margin-bottom:15px;">بەروار: <b>${date}</b></p>` + content,
-    `InvoiceList_${date}.pdf`
+    `InvoiceList_${date}.pdf`,
+    btn
   );
 }
 
