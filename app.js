@@ -157,7 +157,7 @@ async function startApp() {
 
 async function loadNewCars() {
   try {
-    const cutoff = firebase.firestore.Timestamp.fromDate(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000));
+    const cutoff = firebase.firestore.Timestamp.fromDate(new Date(Date.now() - 1 * 24 * 60 * 60 * 1000));
     const snap = await db1
       .collection("Cars")
       .where("time", ">=", cutoff)
