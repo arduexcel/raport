@@ -28,7 +28,7 @@ let manualInvoicePrices = {};
 let manualInvoiceRaw = {};
 let unsubscribeUsersList = null;
 let taxiExitEntries = [];
-let newCarNumbers = new Set();
+let newCarNumbers = new Map();
 
 window.onload = function () {
   const savedUser = localStorage.getItem("terminalAdminUser");
@@ -157,15 +157,18 @@ async function startApp() {
 
 async function loadNewCars() {
   try {
-    const cutoff = firebase.firestore.Timestamp.fromDate(new Date(Date.now() - 1 * 24 * 60 * 60 * 1000));
-    const snap = await db1
-      .collection("Cars")
-      .where("time", ">=", cutoff)
-      .get();
+    const cutoff = firebase.firestore.Timestamp.fromDate(
+      new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+    );
+    const snap = await db1.collection("Cars").where("time", ">=", cutoff).get();
     newCarNumbers.clear();
     snap.forEach((doc) => {
-      const num = doc.data().number;
-      if (num !== undefined && num !== null) newCarNumbers.add(String(num));
+      const data = doc.data();
+      const num = data.number;
+      if (num !== undefined && num !== null) {
+        const addedMs = data.time?.toDate?.()?.getTime?.() || Date.now();
+        newCarNumbers.set(String(num), addedMs);
+      }
     });
   } catch (e) {
     // silently ignore
@@ -227,7 +230,8 @@ async function fetchInvoices() {
     if (
       (lineVal === "" || inv.line === lineVal) &&
       (empVal === "" || inv.employee === empVal) &&
-      inv.status !== "deleted" && inv.status !== "canceled"
+      inv.status !== "deleted" &&
+      inv.status !== "canceled"
     ) {
       const num = String(inv.carNumber || "");
       if (num) carCountMap[num] = (carCountMap[num] || 0) + 1;
@@ -272,9 +276,16 @@ async function fetchInvoices() {
         totalMoney += parseInt(inv.price) || 0;
       }
 
-      const isNewCar = !isDeleted && newCarNumbers.has(String(inv.carNumber || ""));
-      const dupColor = !isDeleted ? dupColors[String(inv.carNumber || "")] : null;
-      const rowClass = isDeleted ? "deleted-row" : (!dupColor && isNewCar) ? "new-car-row" : "";
+      const newCarAddedMs = !isDeleted ? newCarNumbers.get(String(inv.carNumber || "")) : undefined;
+      const isNewCar = newCarAddedMs !== undefined;
+      const dupColor = !isDeleted
+        ? dupColors[String(inv.carNumber || "")]
+        : null;
+      const rowClass = isDeleted
+        ? "deleted-row"
+        : !dupColor && isNewCar
+          ? "new-car-row"
+          : "";
       const rowStyle = dupColor
         ? `style="background-color:${dupColor.bg};border-right:4px solid ${dupColor.border};"`
         : "";
@@ -304,7 +315,10 @@ async function fetchInvoices() {
         : "---";
 
       const newCarBadge = isNewCar
-        ? `<span class="badge-new-car">نوێ</span>`
+        ? (() => {
+            const daysSince = Math.floor((Date.now() - newCarAddedMs) / (24 * 60 * 60 * 1000)) + 1;
+            return `<span class="badge-new-car">نوێ <span class="badge-new-car-days">${daysSince}/7</span></span>`;
+          })()
         : "";
       const dupBadge = dupColor
         ? `<span style="background:${dupColor.border};color:white;font-size:11px;font-weight:bold;padding:1px 6px;border-radius:8px;margin-right:4px;vertical-align:middle;">×${carCountMap[String(inv.carNumber || "")]}</span>`
@@ -1053,7 +1067,9 @@ function showDailyReport() {
       const shiftCount = { "8-4": 0, "4-12": 0, "12-8": 0 };
       blk.forEach((inv) => {
         if (!inv.date) return;
-        const timePart = inv.date.includes(" ") ? inv.date.split(" ")[1] : inv.date;
+        const timePart = inv.date.includes(" ")
+          ? inv.date.split(" ")[1]
+          : inv.date;
         const parts = (timePart || "").split(":");
         const hour = parseInt(parts[0]);
         const minute = parseInt(parts[1]) || 0;
@@ -1787,7 +1803,7 @@ function downloadDailyReportPDF(btn) {
     "ڕاپۆرتی ڕۆژانەی تێرمیناڵی سەرەکی سلێمانی",
     content,
     `DailyReport_${date}.pdf`,
-    btn
+    btn,
   );
 }
 
@@ -1798,9 +1814,10 @@ function downloadCombinedMonthlyPDF(btn) {
   const month = document.getElementById("combinedMonthPicker").value;
   downloadAsPDF(
     "کۆی داهاتی مانگانەی پسووڵەی دەستی و پسووڵەکان - تێرمیناڵی سەرەکی سلێمانی",
-    `<p style="text-align:center;color:#555;margin-bottom:10px;">مانگ: <b>${month}</b></p>` + content,
+    `<p style="text-align:center;color:#555;margin-bottom:10px;">مانگ: <b>${month}</b></p>` +
+      content,
     `CombinedMonthly_${month}.pdf`,
-    btn
+    btn,
   );
 }
 
@@ -1862,9 +1879,9 @@ function downloadInvoiceListPDF(btn) {
   `;
   downloadAsPDF(
     "لیستی وەسڵەکان - تێرمیناڵی سەرەکی سلێمانی",
-    `<p style="text-align:center;color:#555;margin-bottom:15px;">بەروار: <b>${date}</b></p>` + content,
+    `<p style="text-align:center;color:#555;margin-bottom:15px;">بەروار: <b>${date}</b></p>` +
+      content,
     `InvoiceList_${date}.pdf`,
-    btn
+    btn,
   );
 }
-
