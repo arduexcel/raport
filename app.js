@@ -259,7 +259,7 @@ async function fetchInvoices() {
 
   currentInvoices = [];
   let totalMoney = 0;
-  let count = 0;
+  let nonDeletedCount = 0;
   let rowsHtml = "";
 
   allItems.forEach((inv) => {
@@ -272,7 +272,7 @@ async function fetchInvoices() {
 
       const isDeleted = inv.status === "deleted" || inv.status === "canceled";
       if (!isDeleted) {
-        count++;
+        nonDeletedCount++;
         totalMoney += parseInt(inv.price) || 0;
       }
 
@@ -324,7 +324,7 @@ async function fetchInvoices() {
         ? `<span style="background:${dupColor.border};color:white;font-size:11px;font-weight:bold;padding:1px 6px;border-radius:8px;margin-right:4px;vertical-align:middle;">×${carCountMap[String(inv.carNumber || "")]}</span>`
         : "";
       rowsHtml += `<tr class="${rowClass}" ${rowStyle}>
-        <td>${isDeleted ? "---" : count}</td>
+        <td>${isDeleted ? `<span style="text-decoration:line-through;color:#c0392b;font-weight:bold;">${inv.invoiceNo || "---"}</span>` : (inv.invoiceNo || "---")}</td>
         <td>${timeDisplay}</td>
         <td>${inv.employee || "---"}</td>
         <td><b>${inv.carNumber || "---"}</b>${newCarBadge}${dupBadge}</td>
@@ -340,10 +340,10 @@ async function fetchInvoices() {
 
   document.getElementById("invoiceBody").innerHTML = rowsHtml;
 
-  document.getElementById("totalCount").innerText = count;
+  document.getElementById("totalCount").innerText = nonDeletedCount;
   document.getElementById("totalMoney").innerText =
     totalMoney.toLocaleString() + " IQD";
-  document.getElementById("topTotalCount").innerText = count;
+  document.getElementById("topTotalCount").innerText = nonDeletedCount;
   document.getElementById("topTotalMoney").innerText =
     totalMoney.toLocaleString() + " IQD";
 
