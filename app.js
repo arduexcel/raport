@@ -271,8 +271,11 @@ async function fetchInvoices() {
       currentInvoices.push(inv);
 
       const isDeleted = inv.status === "deleted" || inv.status === "canceled";
-      if (!isDeleted) {
+      const isTrulyDeleted = inv.status === "deleted";
+      if (!isTrulyDeleted) {
         nonDeletedCount++;
+      }
+      if (!isDeleted) {
         totalMoney += parseInt(inv.price) || 0;
       }
 
@@ -629,9 +632,11 @@ async function calcRange() {
     if (!snap) return;
     snap.forEach((doc) => {
       const data = doc.data();
+      if (data.status !== "deleted") {
+        grandCount++;
+      }
       if (data.status !== "deleted" && data.status !== "canceled") {
         grandTotal += parseInt(data.price) || 0;
-        grandCount++;
       }
     });
   });
@@ -1033,7 +1038,7 @@ function showDailyReport() {
   const empMap = {};
   let printOrder = 0;
   currentInvoices.forEach((inv) => {
-    if (inv.status === "deleted" || inv.status === "canceled") return;
+    if (inv.status === "deleted") return;
     printOrder++;
     const emp = inv.employee || "نادیار";
     if (!empMap[emp]) empMap[emp] = [];
@@ -1081,7 +1086,7 @@ function showDailyReport() {
 
       const nos = blk.map((inv) => inv._printOrder);
       const total = blk.reduce(
-        (sum, inv) => sum + (parseInt(inv.price) || 0),
+        (sum, inv) => sum + (inv.status === "canceled" ? 0 : parseInt(inv.price) || 0),
         0,
       );
       entries.push({ emp, shift, nos, total });
@@ -1179,9 +1184,11 @@ async function loadMonthlyData(month) {
     let dayCount = 0;
     snap.forEach((doc) => {
       const data = doc.data();
+      if (data.status !== "deleted") {
+        dayCount++;
+      }
       if (data.status !== "deleted" && data.status !== "canceled") {
         dayTotal += parseInt(data.price) || 0;
-        dayCount++;
       }
     });
     if (dayCount > 0) {
