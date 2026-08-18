@@ -9,7 +9,7 @@
       type="image/png"
       href="https://arduexcel.github.io/img/arduecel.ico"
     />
-    <link rel="stylesheet" href="styles.css?v=5" />
+    <link rel="stylesheet" href="styles.css?v=6" />
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -107,6 +107,14 @@
             onclick="showLineReport()"
           >
             🗺️ ڕاپۆرتی هێڵەکان
+          </button>
+          <button
+            id="carCountBtn"
+            class="btn"
+            style="background: #2c3e50; display: none"
+            onclick="showCarCountReport()"
+          >
+            🚌 ژمارەی ئۆتۆمبێلی هێڵەکان
           </button>
           <button
             id="dailyTaxiExitBtn"
@@ -758,6 +766,47 @@
       </div>
     </div>
 
+    <!-- Car Count Report Modal -->
+    <div id="carCountModal" class="modal">
+      <div class="modal-content" style="max-width: 700px">
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+          "
+        >
+          <h3 style="margin: 0">🚌 ژمارەی ئۆتۆمبێلی هێڵەکان</h3>
+          <div style="display: flex; gap: 8px">
+            <button class="btn btn-primary" onclick="printCarCountReport()">
+              🖨️ پڕینت
+            </button>
+            <button
+              class="btn btn-danger"
+              onclick="
+                document.getElementById('carCountModal').style.display = 'none'
+              "
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+        <div id="carCountContent"></div>
+      </div>
+    </div>
+
+    <!-- Hidden print area for car count report -->
+    <div id="car-count-print-area" style="display: none">
+      <div class="print-logo">
+        <img src="logo.jpeg" alt="Sulaymaniyah Terminal" />
+      </div>
+      <div class="print-title">
+        ژمارەی ئۆتۆمبێلی هێڵەکان - تێرمیناڵی سەرەکی سلێمانی
+      </div>
+      <div id="car-count-print-content"></div>
+    </div>
+
     <!-- Hidden print area for monthly line report -->
     <div id="monthly-line-print-area" style="display: none">
       <div class="print-logo">
@@ -1215,6 +1264,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=6"></script>
+    <script src="app.js?v=7"></script>
   </body>
 </html>

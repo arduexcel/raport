@@ -144,6 +144,9 @@ async function startApp() {
     document.getElementById("addCarBtn").style.display = "none";
   }
 
+  document.getElementById("carCountBtn").style.display =
+    currentUser.role === "admin" ? "inline-flex" : "none";
+
   if (currentUser.role === "audit") {
     document.getElementById("taxiExitBtn").style.display = "inline-flex";
     document.getElementById("dailyTaxiExitBtn").style.display = "inline-flex";
@@ -727,6 +730,107 @@ function showLineReport() {
       ${parkingCard}
     </div>`;
   document.getElementById("lineReportModal").style.display = "flex";
+}
+
+async function showCarCountReport() {
+  const modal = document.getElementById("carCountModal");
+  const container = document.getElementById("carCountContent");
+  container.innerHTML =
+    '<p style="text-align:center;color:gray;">چاوەڕێ بکە...</p>';
+  modal.style.display = "flex";
+
+  let snap;
+  try {
+    snap = await db1.collection("Cars").get();
+  } catch (e) {
+    container.innerHTML =
+      '<p style="text-align:center;color:#c0392b;">هەڵە لە هێنانی داتای ئۆتۆمبێلەکان!</p>';
+    return;
+  }
+
+  // group registered cars by line, then by vehicle type
+  const lineMap = {};
+  const typeTotals = {};
+  let grandTotal = 0;
+
+  snap.forEach((doc) => {
+    const data = doc.data();
+    const line = data.line || "بێ هێڵ";
+    const type = data.type || "نادیار";
+    if (!lineMap[line]) lineMap[line] = { types: {}, total: 0 };
+    lineMap[line].types[type] = (lineMap[line].types[type] || 0) + 1;
+    lineMap[line].total++;
+    typeTotals[type] = (typeTotals[type] || 0) + 1;
+    grandTotal++;
+  });
+
+  if (grandTotal === 0) {
+    container.innerHTML =
+      '<p style="text-align:center;color:gray;">هیچ ئۆتۆمبێلێک تۆمار نەکراوە</p>';
+    return;
+  }
+
+  // one column per vehicle type, most common type first
+  const typeNames = Object.keys(typeTotals).sort(
+    (a, b) => typeTotals[b] - typeTotals[a],
+  );
+  const lines = Object.entries(lineMap).sort((a, b) => b[1].total - a[1].total);
+
+  const head = `<tr><th>هێڵ</th>${typeNames
+    .map((t) => `<th>${t}</th>`)
+    .join("")}<th>کۆی گشتی</th></tr>`;
+
+  const rows = lines
+    .map(
+      ([line, data]) => `<tr>
+      <td style="font-weight:bold;font-size:15px;">${line}</td>
+      ${typeNames.map((t) => `<td>${data.types[t] || 0}</td>`).join("")}
+      <td style="font-weight:bold;">${data.total}</td>
+    </tr>`,
+    )
+    .join("");
+
+  const footer = `<tr style="background:#f8f9fa;font-weight:bold;">
+      <td>کۆی گشتی</td>
+      ${typeNames.map((t) => `<td>${typeTotals[t]}</td>`).join("")}
+      <td>${grandTotal}</td>
+    </tr>`;
+
+  const cards = typeNames
+    .map(
+      (t) => `
+    <div style="background:var(--primary);color:white;padding:14px;border-radius:10px;text-align:center;">
+      <div style="font-size:13px;opacity:.85;">${t}</div>
+      <div style="font-size:24px;font-weight:bold;">${typeTotals[t]}</div>
+    </div>`,
+    )
+    .join("");
+
+  container.innerHTML = `
+    <p style="text-align:center;color:#555;margin-bottom:15px;">کۆی ئۆتۆمبێلە تۆمارکراوەکان: <b>${grandTotal}</b></p>
+    <table>
+      <thead>${head}</thead>
+      <tbody>${rows}${footer}</tbody>
+    </table>
+    <div style="margin-top:20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;">
+      ${cards}
+      <div style="background:var(--dark);color:white;padding:14px;border-radius:10px;text-align:center;">
+        <div style="font-size:13px;opacity:.85;">کۆی گشتی</div>
+        <div style="font-size:24px;font-weight:bold;">${grandTotal}</div>
+      </div>
+    </div>`;
+}
+
+function printCarCountReport() {
+  const content = document.getElementById("carCountContent").innerHTML;
+  if (!content || content.includes("چاوەڕێ")) return alert("هیچ داتایەک نییە!");
+  document.getElementById("car-count-print-content").innerHTML = content;
+  const el = document.getElementById("car-count-print-area");
+  document.body.classList.add("report-printing");
+  el.classList.add("is-printing");
+  window.print();
+  el.classList.remove("is-printing");
+  document.body.classList.remove("report-printing");
 }
 
 function printLineReport() {
