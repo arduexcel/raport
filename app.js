@@ -307,7 +307,7 @@ async function fetchInvoices() {
         if (currentUser.role === "admin" || currentUser.role === "audit") {
           const encNote = encodeURIComponent(inv.note || "");
           actionBtn = `
-            <button class="btn btn-primary no-print" style="padding:5px 10px;font-size:12px;margin-left:4px;" onclick="openUpdateInvoice('${invId}','${date}','${inv.carNumber || ""}','${inv.type || ""}','${inv.line || ""}',${parseInt(inv.price) || 0},'${encNote}')">نوێکردنەوە</button>
+            <button class="btn btn-primary no-print" style="padding:5px 10px;font-size:12px;margin-left:4px;" onclick="openUpdateInvoice('${invId}','${date}','${inv.carNumber || ""}','${inv.type || ""}','${inv.line || ""}',${parseInt(inv.price) || 0},'${encNote}','${encodeURIComponent(inv.employee || "")}')">نوێکردنەوە</button>
             <button class="btn btn-danger no-print" style="padding:5px 10px;font-size:12px;" onclick="softDeleteInvoice('${invId}','${inv.carNumber}','${date}')">سڕینەوە</button>`;
         }
       }
@@ -995,8 +995,19 @@ function openUpdateInvoice(
   line,
   price,
   encodedNote,
+  encodedEmployee,
 ) {
   const note = decodeURIComponent(encodedNote);
+  const employee = decodeURIComponent(encodedEmployee || "");
+  const empSelect = document.getElementById("updateEmployee");
+  const names = Array.from(document.getElementById("empFilter").options)
+    .map((o) => o.value)
+    .filter((v) => v);
+  if (employee && !names.includes(employee)) names.unshift(employee);
+  empSelect.innerHTML = names
+    .map((n) => `<option value="${n}">${n}</option>`)
+    .join("");
+  empSelect.value = employee;
   document.getElementById("updateInvId").value = id;
   document.getElementById("updateInvDate").value = date;
   document.getElementById("updateCarNumber").value = carNumber;
@@ -1015,6 +1026,7 @@ async function saveUpdateInvoice() {
   const line = document.getElementById("updateLine").value;
   const price = parseInt(document.getElementById("updatePrice").value) || 0;
   const note = document.getElementById("updateNote").value.trim();
+  const employee = document.getElementById("updateEmployee").value;
 
   if (!carNumber || !line || !price) {
     alert("تکایە خانەکانی پێویست پڕ بکەرەوە");
@@ -1022,6 +1034,7 @@ async function saveUpdateInvoice() {
   }
 
   const updates = { carNumber, type, line, price, note };
+  if (employee) updates.employee = employee;
 
   try {
     await db1
