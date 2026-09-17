@@ -1201,7 +1201,11 @@ function showDailyReport() {
         b[1] > a[1] ? b : a,
       )[0];
 
-      const nos = blk.map((inv) => inv._printOrder);
+      // Show the printed invoice numbers, not the row position (duplicate
+      // invoice numbers would otherwise shift every range after them)
+      const nos = blk
+        .map((inv) => parseInt(inv.invoiceNo))
+        .filter((n) => !isNaN(n));
       const total = blk.reduce(
         (sum, inv) => sum + (inv.status === "canceled" ? 0 : parseInt(inv.price) || 0),
         0,
