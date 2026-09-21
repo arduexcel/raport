@@ -262,7 +262,8 @@ async function fetchInvoices() {
 
   currentInvoices = [];
   let totalMoney = 0;
-  let nonDeletedCount = 0;
+  // کۆی وەسڵەکان = دوایین ژمارەی وەسڵی چاپکراو وەک لە لیستەکەدا دیارە
+  let lastInvoiceNo = 0;
   let rowsHtml = "";
 
   allItems.forEach((inv) => {
@@ -274,13 +275,13 @@ async function fetchInvoices() {
       currentInvoices.push(inv);
 
       const isDeleted = inv.status === "deleted" || inv.status === "canceled";
-      const isTrulyDeleted = inv.status === "deleted";
-      if (!isTrulyDeleted) {
-        nonDeletedCount++;
-      }
       if (!isDeleted) {
         totalMoney += parseInt(inv.price) || 0;
       }
+
+      // ژمارەی سڕاوە و هەڵوەشێنراوەکانیش لە لیستدا پیشان دەدرێت، بۆیە لێرەش دەژمێردرێن
+      const invNo = parseInt(inv.invoiceNo);
+      if (!isNaN(invNo) && invNo > lastInvoiceNo) lastInvoiceNo = invNo;
 
       const newCarAddedMs = !isDeleted ? newCarNumbers.get(String(inv.carNumber || "")) : undefined;
       const isNewCar = newCarAddedMs !== undefined;
@@ -346,10 +347,10 @@ async function fetchInvoices() {
 
   document.getElementById("invoiceBody").innerHTML = rowsHtml;
 
-  document.getElementById("totalCount").innerText = nonDeletedCount;
+  document.getElementById("totalCount").innerText = lastInvoiceNo;
   document.getElementById("totalMoney").innerText =
     totalMoney.toLocaleString() + " IQD";
-  document.getElementById("topTotalCount").innerText = nonDeletedCount;
+  document.getElementById("topTotalCount").innerText = lastInvoiceNo;
   document.getElementById("topTotalMoney").innerText =
     totalMoney.toLocaleString() + " IQD";
 
