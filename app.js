@@ -378,35 +378,122 @@ async function fetchInvoices() {
   document.getElementById("bottomDayTotal").innerText = dayTotal;
 }
 
-function downloadExcel() {
+async function downloadExcel() {
   if (currentInvoices.length === 0) {
     alert("هیچ داتایەک نییە بۆ دابەزاندن!");
     return;
   }
-  let csvContent = "\uFEFF";
-  csvContent +=
-    "ژ.وەسڵ,کات,کارمەند,ژمارەی ئۆتۆمبێل,جۆری ئۆتۆمبێل,هێڵ,نرخ,تێبینی,دۆخ\n";
+  if (typeof ExcelJS === "undefined") {
+    alert("کتێبخانەی Excel بار نەبووە! تکایە پەڕەکە نوێ بکەرەوە.");
+    return;
+  }
+
+  const date = document.getElementById("reportDate").value;
+
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet("Report", {
+    views: [{ rightToLeft: true }],
+  });
+
+  ws.addRow([
+    "ژ.وەسڵ",
+    "کات",
+    "کارمەند",
+    "ژمارەی ئۆتۆمبێل",
+    "جۆری ئۆتۆمبێل",
+    "هێڵ",
+    "نرخ",
+    "تێبینی",
+    "دۆخ",
+  ]).font = { bold: true };
+
+  let excelTotal = 0;
+  let excelCount = 0;
   currentInvoices.forEach((inv) => {
-    const row = [
+    const status = inv.status || "active";
+    // هەمان یاسای پیشاندان: سڕاوە و هەڵوەشێنراوە ناژمێردرێن
+    if (status !== "deleted" && status !== "canceled") {
+      excelTotal += parseInt(inv.price) || 0;
+      excelCount++;
+    }
+    const row = ws.addRow([
       inv.invoiceNo || "",
       inv.date || "",
       inv.employee || "",
       inv.carNumber || "",
       inv.type || "",
       inv.line || "",
-      inv.price || 0,
-      (inv.note || "").replace(/,/g, " "),
-      inv.status || "active",
-    ].join(",");
-    csvContent += row + "\n";
+      parseInt(inv.price) || 0,
+      inv.note || "",
+      status,
+    ]);
+    row.getCell(7).numFmt = "#,##0";
   });
 
-  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  // ڕیزی داتا لە ڕیزی 2 دەست پێدەکات (ڕیزی 1 سەردێڕە)
+  const firstRow = 2;
+  const lastRow = currentInvoices.length + 1;
+  const priceRange = `G${firstRow}:G${lastRow}`;
+  const statusRange = `I${firstRow}:I${lastRow}`;
+  const liveRows = `(${statusRange}<>"deleted")*(${statusRange}<>"canceled")`;
+
+  const isAzadExcel = currentUser.name.toLowerCase() === "azad";
+  const manualExtraExcel = isAzadExcel ? manualInvoicePrices[date] || 0 : 0;
+
+  // ڕیزێکی بەتاڵ، دواتر کۆی گشتی لە خوارەوەی شیتەکە
+  ws.addRow([]);
+
+  // ڕیزی کۆکردنەوە: ناونیشان لە ستوونی F، بڕەکە لە ستوونی G
+  function addSummaryRow(label, value, formula) {
+    const row = ws.addRow(["", "", "", "", "", label, value, "", ""]);
+    const cell = row.getCell(7);
+    if (formula) cell.value = { formula: formula, result: value };
+    cell.numFmt = "#,##0";
+    row.font = { bold: true };
+    row.getCell(6).font = { bold: true };
+    cell.font = { bold: true };
+    return row;
+  }
+
+  // فۆرمولەی زیندوو: ئەگەر ڕیزێک دەستکاری بکرێت، کۆکە خۆی نوێ دەبێتەوە
+  const countRow = addSummaryRow(
+    "ژمارەی وەسڵ",
+    excelCount,
+    `SUMPRODUCT(${liveRows})`,
+  );
+  const totalRow = addSummaryRow(
+    "کۆی نرخ",
+    excelTotal,
+    `SUMPRODUCT(${liveRows}*${priceRange})`,
+  );
+
+  let lastTotalRow = totalRow;
+  if (manualExtraExcel > 0) {
+    const manualRow = addSummaryRow("نرخی دەستی", manualExtraExcel);
+    lastTotalRow = addSummaryRow(
+      "کۆی گشتی",
+      excelTotal + manualExtraExcel,
+      `G${totalRow.number}+G${manualRow.number}`,
+    );
+  }
+
+  // هێڵی سەرەوە بۆ جیاکردنەوەی کۆی کۆتایی
+  [6, 7].forEach((c) => {
+    lastTotalRow.getCell(c).border = { top: { style: "thin" } };
+  });
+
+  [10, 18, 14, 16, 14, 14, 14, 24, 10].forEach((w, i) => {
+    ws.getColumn(i + 1).width = w;
+  });
+
+  const buf = await wb.xlsx.writeBuffer();
+  const blob = new Blob([buf], {
+    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
-  const date = document.getElementById("reportDate").value;
   link.setAttribute("href", url);
-  link.setAttribute("download", `Report_${date}.csv`);
+  link.setAttribute("download", `Report_${date}.xlsx`);
   link.style.visibility = "hidden";
   document.body.appendChild(link);
   link.click();
