@@ -2023,6 +2023,120 @@ function downloadDailyReportPDF(btn) {
   );
 }
 
+async function downloadCombinedMonthlyExcel(btn) {
+  const content = document.getElementById("combinedMonthlyContent");
+  const table = content && content.querySelector("table");
+  if (!table) return alert("Ù‡ÛŒÚ† Ø¯Ø§ØªØ§ÛŒÛ•Ú© Ù†ÛŒÛŒÛ•!");
+  if (typeof ExcelJS === "undefined")
+    return alert("Excel library is not available. Please reload the page.");
+
+  const month = document.getElementById("combinedMonthPicker").value;
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet("Monthly Report", {
+    views: [{ rightToLeft: true }],
+  });
+  ws.addRow(["Month", month]).font = { bold: true };
+  const tableRows = Array.from(table.querySelectorAll("tr"));
+  tableRows.forEach((tr, index) => {
+    const values = Array.from(tr.querySelectorAll("th, td")).map((cell, cellIndex) => {
+      const value = cell.textContent.trim();
+      if (index === 0) return value;
+      if (cellIndex === 0) return value;
+      if (value === "—" || value === "-") return 0;
+      const numeric = Number(value.replace(/[^0-9.-]/g, ""));
+      return Number.isFinite(numeric) ? numeric : value;
+    });
+    ws.addRow(values);
+  });
+  const header = ws.getRow(2);
+  header.font = { bold: true, color: { argb: "FFFFFFFF" } };
+  header.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1A5276" } };
+  ws.addRow([]);
+  content.querySelectorAll("div[style*='border:2px solid']").forEach((card) => {
+    const text = Array.from(card.querySelectorAll("div")).map((el) => el.textContent.trim()).filter(Boolean);
+    if (text.length >= 2) {
+      const amount = Number(text[1].replace(/[^0-9.-]/g, "")) || 0;
+      ws.addRow([text[0], amount]).getCell(2).numFmt = "#,##0";
+    }
+  });
+  ws.columns.forEach((column) => {
+    let maxLength = 12;
+    column.eachCell({ includeEmpty: false }, (cell) => {
+      maxLength = Math.max(maxLength, String(cell.value ?? "").length + 2);
+    });
+    column.width = Math.min(maxLength, 32);
+  });
+  const buffer = await wb.xlsx.writeBuffer();
+  const blob = new Blob([buffer], {
+    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `CombinedMonthly_${month}.xlsx`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+async function downloadInvoiceListExcel(btn) {
+  if (!currentInvoices.length) return alert("Ù‡ÛŒÚ† Ø¯Ø§ØªØ§ÛŒÛ•Ú© Ù†ÛŒÛŒÛ•!");
+  if (typeof ExcelJS === "undefined")
+    return alert("Excel library is not available. Please reload the page.");
+  if (btn) btn.disabled = true;
+  try {
+    const date = document.getElementById("reportDate").value;
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet("Invoice List", {
+      views: [{ rightToLeft: true }],
+    });
+    ws.addRow(["No.", "Time", "Employee", "Car Number", "Type", "Line", "Price (IQD)", "Note", "Status"]);
+    ws.getRow(1).font = { bold: true, color: { argb: "FFFFFFFF" } };
+    ws.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF2C3E50" } };
+    let count = 0;
+    let total = 0;
+    currentInvoices.forEach((inv) => {
+      const inactive = inv.status === "deleted" || inv.status === "canceled";
+      const price = parseInt(inv.price) || 0;
+      if (!inactive) {
+        count++;
+        total += price;
+      }
+      const time = inv.date ? (inv.date.includes(" ") ? inv.date.split(" ")[1] : inv.date) : "---";
+      const row = ws.addRow([
+        inactive ? "---" : count,
+        time,
+        inv.employee || "---",
+        inv.carNumber || "---",
+        inv.type || "---",
+        inv.line || "---",
+        price,
+        inv.note || "",
+        inv.status || "active",
+      ]);
+      row.getCell(7).numFmt = "#,##0";
+      if (inactive) row.font = { color: { argb: "FFAAAAAA" }, strike: true };
+    });
+    ws.addRow([]);
+    ws.addRow(["Total invoices", count]);
+    ws.addRow(["Total income (IQD)", total]).getCell(2).numFmt = "#,##0";
+    [10, 14, 22, 18, 18, 18, 16, 28, 14].forEach((width, index) => {
+      ws.getColumn(index + 1).width = width;
+    });
+    const buffer = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `InvoiceList_${date}.xlsx`;
+    link.click();
+    URL.revokeObjectURL(url);
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
 function downloadCombinedMonthlyPDF(btn) {
   const content = document.getElementById("combinedMonthlyContent").innerHTML;
   if (!content || content.includes("⏳") || !content.includes("<table"))
